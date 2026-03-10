@@ -1,12 +1,57 @@
-﻿<Window x:Class="Match_M.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Match_M"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+<Window
+    x:Class="Match_M.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Match_M"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Match_M.ViewModel"
+    Title="MainWindow"
+    Width="700"
+    Height="900"
+    mc:Ignorable="d">
+    <Window.DataContext>
+        <vm:MainWindowViewModel />
+    </Window.DataContext>
 
+    <Grid>
+        <!--  Главное меню  -->
+        <Grid Background="#222" Visibility="{Binding MainMenuVisibility}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock
+                Grid.Row="0"
+                Margin="0,80,0,0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                FontSize="48"
+                Foreground="White"
+                Text="Match-M" />
+
+            <Button
+                Grid.Row="1"
+                Width="200"
+                Height="60"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Command="{Binding PlayCommand}"
+                Content="Play"
+                FontSize="24" />
+        </Grid>
+
+        <!--  Игровой экран  -->
+        <Grid Background="#111" Visibility="{Binding GameScreenVisibility}">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="36"
+                Foreground="White"
+                Text="Игровой экран"
+                TextAlignment="Center" />
+        </Grid>
     </Grid>
 </Window>
