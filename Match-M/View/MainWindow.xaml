@@ -45,13 +45,62 @@
 
         <!--  Игровой экран  -->
         <Grid Background="#111" Visibility="{Binding GameScreenVisibility}">
-            <TextBlock
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                FontSize="36"
-                Foreground="White"
-                Text="Игровой экран"
-                TextAlignment="Center" />
+            <Grid.RowDefinitions>
+                <!-- Верхняя панель: очки + таймер -->
+                <RowDefinition Height="Auto" />
+                <!-- Игровое поле 8x8 -->
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Верхняя панель -->
+            <StackPanel
+                Grid.Row="0"
+                Margin="10"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center">
+                <TextBlock
+                    Margin="0,0,5,0"
+                    FontSize="24"
+                    Foreground="White"
+                    Text="Очки:" />
+                <TextBlock
+                    FontSize="24"
+                    Foreground="Gold"
+                    Text="{Binding Score}" />
+
+                <TextBlock
+                    Margin="40,0,5,0"
+                    FontSize="24"
+                    Foreground="White"
+                    Text="Время:" />
+                <TextBlock
+                    FontSize="24"
+                    Foreground="LightGreen"
+                    Text="{Binding TimeText}" />
+            </StackPanel>
+
+            <!-- Игровое поле 8x8 -->
+            <ItemsControl
+                Grid.Row="1"
+                Margin="20"
+                ItemsSource="{Binding Cells}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="8" Columns="8" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Width="75"
+                            Height="75"
+                            Margin="3"
+                            Background="#444"
+                            CornerRadius="6" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Grid>
     </Grid>
 </Window>
