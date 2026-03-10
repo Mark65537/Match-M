@@ -4,21 +4,24 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Match_M"
+    xmlns:view="clr-namespace:Match_M.View"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:Match_M.ViewModel"
-    Title="MainWindow"
+    Title="Match-M"
     Width="700"
     Height="900"
+    ResizeMode="NoResize"
+    WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
 
     <Grid>
-        <!--  Главное меню  -->
-        <Grid Background="#222">
-            <Grid.Style>
-                <Style TargetType="Grid">
+        <!-- Главное меню -->
+        <view:MenuView>
+            <view:MenuView.Style>
+                <Style TargetType="view:MenuView">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding GameState}" Value="Menu">
@@ -26,37 +29,13 @@
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </Grid.Style>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+            </view:MenuView.Style>
+        </view:MenuView>
 
-            <TextBlock
-                Grid.Row="0"
-                Margin="0,80,0,0"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                FontSize="48"
-                Foreground="White"
-                Text="Match-M" />
-
-            <Button
-                Grid.Row="1"
-                Width="200"
-                Height="60"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Command="{Binding PlayCommand}"
-                Content="Play"
-                FontSize="24" />
-        </Grid>
-
-        <!--  Игровой экран  -->
-        <Grid Background="#111">
-            <Grid.Style>
-                <Style TargetType="Grid">
+        <!-- Игровой экран -->
+        <view:GameView>
+            <view:GameView.Style>
+                <Style TargetType="view:GameView">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding GameState}" Value="InGame">
@@ -64,63 +43,7 @@
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </Grid.Style>
-            <Grid.RowDefinitions>
-                <!-- Верхняя панель: очки + таймер -->
-                <RowDefinition Height="Auto" />
-                <!-- Игровое поле 8x8 -->
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <!-- Верхняя панель -->
-            <StackPanel
-                Grid.Row="0"
-                Margin="10"
-                Orientation="Horizontal"
-                HorizontalAlignment="Center">
-                <TextBlock
-                    Margin="0,0,5,0"
-                    FontSize="24"
-                    Foreground="White"
-                    Text="Очки:" />
-                <TextBlock
-                    FontSize="24"
-                    Foreground="Gold"
-                    Text="{Binding Score}" />
-
-                <TextBlock
-                    Margin="40,0,5,0"
-                    FontSize="24"
-                    Foreground="White"
-                    Text="Время:" />
-                <TextBlock
-                    FontSize="24"
-                    Foreground="LightGreen"
-                    Text="{Binding TimeText}" />
-            </StackPanel>
-
-            <!-- Игровое поле 8x8 -->
-            <ItemsControl
-                Grid.Row="1"
-                Margin="20"
-                ItemsSource="{Binding Cells}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Rows="8" Columns="8" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border
-                            Width="75"
-                            Height="75"
-                            Margin="3"
-                            Background="#444"
-                            CornerRadius="6" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Grid>
+            </view:GameView.Style>
+        </view:GameView>
     </Grid>
 </Window>
