@@ -16,7 +16,17 @@
 
     <Grid>
         <!--  Главное меню  -->
-        <Grid Background="#222" Visibility="{Binding MainMenuVisibility}">
+        <Grid Background="#222">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding GameState}" Value="Menu">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -44,7 +54,17 @@
         </Grid>
 
         <!--  Игровой экран  -->
-        <Grid Background="#111" Visibility="{Binding GameScreenVisibility}">
+        <Grid Background="#111">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding GameState}" Value="InGame">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.RowDefinitions>
                 <!-- Верхняя панель: очки + таймер -->
                 <RowDefinition Height="Auto" />

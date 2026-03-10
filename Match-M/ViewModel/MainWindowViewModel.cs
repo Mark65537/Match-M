@@ -3,13 +3,13 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
+using Match_M.Model;
 
 namespace Match_M.ViewModel;
 
 public class MainWindowViewModel : ObservableObject
 {
-    private bool _isMainMenuVisible = true;
-    private bool _isGameScreenVisible;
+    private GameState _gameState;
 
     private int _score;
     private int _timeLeftSeconds;
@@ -35,13 +35,14 @@ public class MainWindowViewModel : ObservableObject
 
         InitBoard();
         ResetGameState();
+        GameState = GameState.Menu;
     }
 
-    public Visibility MainMenuVisibility =>
-        _isMainMenuVisible ? Visibility.Visible : Visibility.Collapsed;
-
-    public Visibility GameScreenVisibility =>
-        _isGameScreenVisible ? Visibility.Visible : Visibility.Collapsed;
+    public GameState GameState
+    {
+        get => _gameState;
+        set => SetProperty(ref _gameState, value);
+    }
 
     public int Score
     {
@@ -56,13 +57,8 @@ public class MainWindowViewModel : ObservableObject
 
     private void OnPlay()
     {
-        _isMainMenuVisible = false;
-        _isGameScreenVisible = true;
-
-        OnPropertyChanged(nameof(MainMenuVisibility));
-        OnPropertyChanged(nameof(GameScreenVisibility));
-
         ResetGameState();
+        GameState = GameState.InGame;
         _timer.Start();
     }
 
@@ -92,6 +88,7 @@ public class MainWindowViewModel : ObservableObject
         else
         {
             _timer.Stop();
+            GameState = GameState.GameOver;
         }
     }
 }
