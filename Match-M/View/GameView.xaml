@@ -11,6 +11,14 @@
     d:Width="{x:Static model:GameConstants.SCREEN_WIDTH}"
     mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ShapesDictionary.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
     <Grid Background="#111">
         <Grid.RowDefinitions>
             <!--  Верхняя панель: очки + таймер  -->
