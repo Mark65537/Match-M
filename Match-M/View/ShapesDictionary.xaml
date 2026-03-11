@@ -1,50 +1,51 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:model="clr-namespace:Match_M.Model">
 
-    <!-- Квадрат -->
-    <Style x:Key="SquareShapeStyle" TargetType="TextBlock">
-        <Setter Property="Text" Value="■" />
-        <Setter Property="FontSize" Value="32" />
-        <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="TextAlignment" Value="Center" />
-    </Style>
-
-    <!-- Круг -->
-    <Style x:Key="CircleShapeStyle" TargetType="TextBlock">
-        <Setter Property="Text" Value="●" />
-        <Setter Property="FontSize" Value="32" />
-        <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="TextAlignment" Value="Center" />
-    </Style>
-
-    <!-- Треугольник -->
-    <Style x:Key="TriangleShapeStyle" TargetType="TextBlock">
-        <Setter Property="Text" Value="▲" />
-        <Setter Property="FontSize" Value="32" />
-        <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="TextAlignment" Value="Center" />
-    </Style>
-
-    <!-- Ромб -->
-    <Style x:Key="DiamondShapeStyle" TargetType="TextBlock">
-        <Setter Property="Text" Value="◆" />
-        <Setter Property="FontSize" Value="32" />
-        <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="TextAlignment" Value="Center" />
-    </Style>
-
-    <!-- Звезда -->
-    <Style x:Key="StarShapeStyle" TargetType="TextBlock">
-        <Setter Property="Text" Value="★" />
-        <Setter Property="FontSize" Value="32" />
-        <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="TextAlignment" Value="Center" />
-    </Style>
+    <!--  Отображение новой ячейки Cell с векторной фигурой (Path)  -->
+    <DataTemplate DataType="{x:Type model:Cell}">
+        <Border
+            Width="75"
+            Height="75"
+            Margin="3"
+            Background="#444"
+            CornerRadius="6">
+            <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Path Fill="White" Stretch="Uniform">
+                    <Path.Style>
+                        <Style TargetType="Path">
+                            <!--  Пустая фигура по умолчанию  -->
+                            <Setter Property="Data" Value="M0,0" />
+                            <!--  Единый внутренний отступ для всех фигур  -->
+                            <Setter Property="Margin" Value="15" />
+                            <Style.Triggers>
+                                <!--  Квадрат  -->
+                                <DataTrigger Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Square}">
+                                    <Setter Property="Data" Value="M10,10 L90,10 L90,90 L10,90 Z" />
+                                </DataTrigger>
+                                <!--  Круг  -->
+                                <DataTrigger Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Circle}">
+                                    <Setter Property="Data" Value="M50,20 A30,30 0 1 1 49.9,20 Z" />
+                                </DataTrigger>
+                                <!--  Треугольник  -->
+                                <DataTrigger Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Triangle}">
+                                    <Setter Property="Data" Value="M50,15 L85,85 L15,85 Z" />
+                                </DataTrigger>
+                                <!--  Ромб  -->
+                                <DataTrigger Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Diamond}">
+                                    <Setter Property="Data" Value="M50,15 L85,50 L50,85 L15,50 Z" />
+                                </DataTrigger>
+                                <!--  Звезда  -->
+                                <DataTrigger Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Star}">
+                                    <Setter Property="Data" Value="M50,15 L58,35 L80,35 L62,50 L69,72 L50,60 L31,72 L38,50 L20,35 L42,35 Z" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Path.Style>
+                </Path>
+            </Viewbox>
+        </Border>
+    </DataTemplate>
 
 </ResourceDictionary>

@@ -64,17 +64,6 @@
                     <UniformGrid Columns="8" Rows="8" />
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
-
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Border
-                        Width="75"
-                        Height="75"
-                        Margin="3"
-                        Background="#444"
-                        CornerRadius="6" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
         </ItemsControl>
     </Grid>
 </UserControl>

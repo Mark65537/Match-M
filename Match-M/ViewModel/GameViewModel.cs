@@ -11,8 +11,7 @@ public sealed class GameViewModel : ObservableObject
     private int _timeLeftSeconds;
     private readonly DispatcherTimer _timer;
     private readonly GameStateService _gameStateService;
-
-    private const int BoardSize = 8;
+    private static readonly Random _random = new();
 
     public GameViewModel(GameStateService gameStateService)
     {
@@ -26,7 +25,7 @@ public sealed class GameViewModel : ObservableObject
         Reset();
     }
 
-    public ObservableCollection<int> Cells { get; } = [];
+    public ObservableCollection<Cell> Cells { get; } = [];
 
     public int Score
     {
@@ -53,13 +52,24 @@ public sealed class GameViewModel : ObservableObject
         Score = 0;
         _timeLeftSeconds = 60;
         OnPropertyChanged(nameof(TimeText));
+        InitBoard();
     }
 
     private void InitBoard()
     {
         Cells.Clear();
-        for (int i = 0; i < BoardSize * BoardSize; i++)
-            Cells.Add(i);
+
+        int shapeCount = Enum.GetValues<ShapeType>().Length;
+
+        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+        {
+            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+            {
+                ShapeType shape = (ShapeType)_random.Next(shapeCount);
+
+                Cells.Add(new Cell(r, c, shape));
+            }
+        }
     }
 
     private void GameState_PropertyChanged()
