@@ -19,46 +19,24 @@
     </Window.DataContext>
 
     <Grid>
-        <!-- Главное меню -->
-        <view:MenuView DataContext="{Binding Menu}">
-            <view:MenuView.Style>
-                <Style TargetType="view:MenuView">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding DataContext.GameStateService.CurrentState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Menu">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </view:MenuView.Style>
-        </view:MenuView>
+        <ContentControl Content="{Binding CurrentViewModel}">
 
-        <!-- Игровой экран -->
-        <view:GameView DataContext="{Binding Game}">
-            <view:GameView.Style>
-                <Style TargetType="view:GameView">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding DataContext.GameStateService.CurrentState, RelativeSource={RelativeSource AncestorType=Window}}" Value="InGame">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </view:GameView.Style>
-        </view:GameView>
+            <ContentControl.Resources>
 
-        <!-- Game Over -->
-        <view:GameOverView DataContext="{Binding GameOver}">
-            <view:GameOverView.Style>
-                <Style TargetType="view:GameOverView">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding DataContext.GameStateService.CurrentState, RelativeSource={RelativeSource AncestorType=Window}}" Value="GameOver">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </view:GameOverView.Style>
-        </view:GameOverView>
+                <DataTemplate DataType="{x:Type vm:MenuViewModel}">
+                    <view:MenuView />
+                </DataTemplate>
+
+                <DataTemplate DataType="{x:Type vm:GameViewModel}">
+                    <view:GameView />
+                </DataTemplate>
+
+                <DataTemplate DataType="{x:Type vm:GameOverViewModel}">
+                    <view:GameOverView />
+                </DataTemplate>
+
+            </ContentControl.Resources>
+
+        </ContentControl>
     </Grid>
 </Window>
