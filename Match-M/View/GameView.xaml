@@ -23,7 +23,7 @@
         <Grid.RowDefinitions>
             <!--  Верхняя панель: очки + таймер  -->
             <RowDefinition Height="Auto" />
-            <!--  Игровое поле 8x8  -->
+            <!--  Игровое поле  -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -54,17 +54,22 @@
                 Text="{Binding TimeText}" />
         </StackPanel>
 
-        <!--  Игровое поле 8x8  -->
-        <ItemsControl
+        <!--  Игровое поле  -->
+
+        <Viewbox
             Grid.Row="1"
             Margin="20"
-            ItemsSource="{Binding Cells}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Columns="8" Rows="8" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-        </ItemsControl>
+            VerticalAlignment="Bottom"
+            Stretch="Uniform"
+            StretchDirection="Both">
+            <ItemsControl ItemsSource="{Binding Cells}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="8" Rows="8" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </Viewbox>
     </Grid>
 </UserControl>
 
