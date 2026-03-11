@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Match_M.Model;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows.Threading;
 
 namespace Match_M.ViewModel;
@@ -18,7 +17,7 @@ public sealed class GameViewModel : ObservableObject
     public GameViewModel(GameStateService gameStateService)
     {
         _gameStateService = gameStateService;
-        _gameStateService.PropertyChanged += GameStateService_PropertyChanged;
+        _gameStateService.StateChanged += GameState_PropertyChanged;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
@@ -63,11 +62,8 @@ public sealed class GameViewModel : ObservableObject
             Cells.Add(i);
     }
 
-    private void GameStateService_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void GameState_PropertyChanged()
     {
-        if (e.PropertyName != nameof(GameStateService.CurrentState))
-            return;
-
         switch (_gameStateService.CurrentState)
         {
             case GameState.Menu:

@@ -1,12 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Match_M.Model;
-using System.ComponentModel;
 
 namespace Match_M.ViewModel;
 
 public class MainWindowViewModel : ObservableObject
 {
-    public GameStateService GameStateService { get; }
 
     public MainWindowViewModel()
     {
@@ -19,10 +17,11 @@ public class MainWindowViewModel : ObservableObject
         GameVM = new GameViewModel(GameStateService);
         GameOverVM = new GameOverViewModel(GameStateService);
 
-        GameStateService.PropertyChanged += GameStateService_PropertyChanged;
+        GameStateService.StateChanged += GameState_PropertyChanged;
         UpdateCurrentViewModel();
     }
 
+    public GameStateService GameStateService { get; }
     public MenuViewModel MenuVM { get; }
     public GameViewModel GameVM { get; }
     public GameOverViewModel GameOverVM { get; }
@@ -34,11 +33,8 @@ public class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _currentViewModel, value);
     }
 
-    private void GameStateService_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void GameState_PropertyChanged()
     {
-        if (e.PropertyName != nameof(GameStateService.CurrentState))
-            return;
-
         UpdateCurrentViewModel();
     }
 

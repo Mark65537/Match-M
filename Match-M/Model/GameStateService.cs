@@ -9,11 +9,21 @@ namespace Match_M.Model
     {
         private GameState _currentState;
 
+        /// <summary>
+        /// Событие изменения состояния
+        /// </summary>
+        public event Action? StateChanged;
+
         public GameState CurrentState
         {
             get => _currentState;
-            set => SetProperty(ref _currentState, value);
-
+            set
+            {
+                if (SetProperty(ref _currentState, value))
+                {
+                    StateChanged?.Invoke();
+                }
+            }
         }
     }
 }
