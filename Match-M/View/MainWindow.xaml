@@ -46,5 +46,19 @@
                 </Style>
             </view:GameView.Style>
         </view:GameView>
+
+        <!-- Game Over -->
+        <view:GameOverView>
+            <view:GameOverView.Style>
+                <Style TargetType="view:GameOverView">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding GameState}" Value="GameOver">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </view:GameOverView.Style>
+        </view:GameOverView>
     </Grid>
 </Window>

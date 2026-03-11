@@ -25,6 +25,7 @@ public class MainWindowViewModel : ObservableObject
     public MainWindowViewModel()
     {
         PlayCommand = new RelayCommand(OnPlay);
+        GameOverOkCommand = new RelayCommand(OnGameOverOk);
 
         // Настройка таймера (тиков в секунду)
         _timer = new DispatcherTimer
@@ -54,12 +55,18 @@ public class MainWindowViewModel : ObservableObject
         $"{_timeLeftSeconds / 60:00}:{_timeLeftSeconds % 60:00}";
 
     public RelayCommand PlayCommand { get; }
+    public RelayCommand GameOverOkCommand { get; }
 
     private void OnPlay()
     {
         ResetGameState();
         GameState = GameState.InGame;
         _timer.Start();
+    }
+
+    private void OnGameOverOk()
+    {
+        GameState = GameState.Menu;
     }
 
     private void InitBoard()
