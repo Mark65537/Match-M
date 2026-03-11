@@ -20,12 +20,12 @@
 
     <Grid>
         <!-- Главное меню -->
-        <view:MenuView>
+        <view:MenuView DataContext="{Binding Menu}">
             <view:MenuView.Style>
                 <Style TargetType="view:MenuView">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding GameState}" Value="Menu">
+                        <DataTrigger Binding="{Binding DataContext.GameStateService.CurrentState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Menu">
                             <Setter Property="Visibility" Value="Visible" />
                         </DataTrigger>
                     </Style.Triggers>
@@ -34,12 +34,12 @@
         </view:MenuView>
 
         <!-- Игровой экран -->
-        <view:GameView>
+        <view:GameView DataContext="{Binding Game}">
             <view:GameView.Style>
                 <Style TargetType="view:GameView">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding GameState}" Value="InGame">
+                        <DataTrigger Binding="{Binding DataContext.GameStateService.CurrentState, RelativeSource={RelativeSource AncestorType=Window}}" Value="InGame">
                             <Setter Property="Visibility" Value="Visible" />
                         </DataTrigger>
                     </Style.Triggers>
@@ -48,12 +48,12 @@
         </view:GameView>
 
         <!-- Game Over -->
-        <view:GameOverView>
+        <view:GameOverView DataContext="{Binding GameOver}">
             <view:GameOverView.Style>
                 <Style TargetType="view:GameOverView">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding GameState}" Value="GameOver">
+                        <DataTrigger Binding="{Binding DataContext.GameStateService.CurrentState, RelativeSource={RelativeSource AncestorType=Window}}" Value="GameOver">
                             <Setter Property="Visibility" Value="Visible" />
                         </DataTrigger>
                     </Style.Triggers>

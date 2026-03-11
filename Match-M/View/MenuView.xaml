@@ -6,13 +6,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:model="clr-namespace:Match_M.Model"
     xmlns:vm="clr-namespace:Match_M.ViewModel"
+    d:DataContext="{d:DesignInstance Type=vm:MenuViewModel}"
     d:Height="{x:Static model:GameConstants.SCREEN_HEIGHT}"
     d:Width="{x:Static model:GameConstants.SCREEN_WIDTH}"
     mc:Ignorable="d">
-
-    <UserControl.DataContext>
-        <vm:MenuViewModel />
-    </UserControl.DataContext>
 
     <Grid Background="#222">
         <Grid.RowDefinitions>

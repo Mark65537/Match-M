@@ -6,20 +6,15 @@ namespace Match_M.ViewModel;
 
 public sealed class MenuViewModel : ObservableObject
 {
-    public MenuViewModel()
-    {
 
-    }
-
-    public MenuViewModel(GameState gameState)
+    public MenuViewModel(GameStateService gameStateService)
     {
         PlayCommand = new RelayCommand(() =>
         {
-            gameState = GameState.InGame;
+            gameStateService.CurrentState = GameState.InGame;
         });
     }
 
     public RelayCommand PlayCommand { get; }
-
 }
 

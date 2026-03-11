@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Match_M.Model;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Threading;
 
 namespace Match_M.ViewModel;
@@ -10,19 +11,14 @@ public sealed class GameViewModel : ObservableObject
     private int _score;
     private int _timeLeftSeconds;
     private readonly DispatcherTimer _timer;
-    private GameState _gameState;
-
+    private readonly GameStateService _gameStateService;
 
     private const int BoardSize = 8;
 
-    public GameViewModel()
+    public GameViewModel(GameStateService gameStateService)
     {
-        Score = 9999;
-    }
-
-    public GameViewModel(GameState gameState)
-    {
-        _gameState = gameState;
+        _gameStateService = gameStateService;
+        _gameStateService.PropertyChanged += GameStateService_PropertyChanged;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
@@ -41,17 +37,19 @@ public sealed class GameViewModel : ObservableObject
 
     public string TimeText => $"{_timeLeftSeconds / 60:00}:{_timeLeftSeconds % 60:00}";
 
-    public void Start() => _timer.Start();
-
-    public void Stop() => _timer.Stop();
-
-    private void EndGame()
+    private void Start()
     {
-        Stop();
-        _gameState = GameState.GameOver;
+        if (!_timer.IsEnabled)
+            _timer.Start();
     }
 
-    public void Reset()
+    private void Stop()
+    {
+        if (_timer.IsEnabled)
+            _timer.Stop();
+    }
+
+    private void Reset()
     {
         Score = 0;
         _timeLeftSeconds = 60;
@@ -65,6 +63,26 @@ public sealed class GameViewModel : ObservableObject
             Cells.Add(i);
     }
 
+    private void GameStateService_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(GameStateService.CurrentState))
+            return;
+
+        switch (_gameStateService.CurrentState)
+        {
+            case GameState.Menu:
+                Stop();
+                break;
+            case GameState.InGame:
+                Reset();
+                Start();
+                break;
+            case GameState.GameOver:
+                Stop();
+                break;
+        }
+    }
+
     private void Timer_Tick(object? sender, EventArgs e)
     {
         if (_timeLeftSeconds > 0)
@@ -74,8 +92,8 @@ public sealed class GameViewModel : ObservableObject
             return;
         }
 
-        _timer.Stop();
-        EndGame();
+        Stop();
+        _gameStateService.CurrentState = GameState.GameOver;
     }
 }
 

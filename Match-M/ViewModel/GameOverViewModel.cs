@@ -6,16 +6,12 @@ namespace Match_M.ViewModel;
 
 public sealed class GameOverViewModel : ObservableObject
 {
-    public GameOverViewModel()
-    {
 
-    }
-
-    public GameOverViewModel(GameState gameState)
+    public GameOverViewModel(GameStateService gameStateService)
     {
         GameOverOkCommand = new RelayCommand(() =>
         {
-            gameState = GameState.Menu;
+            gameStateService.CurrentState = GameState.Menu;
         });
     }
 
