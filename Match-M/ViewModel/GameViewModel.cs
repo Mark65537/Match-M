@@ -123,8 +123,21 @@ public sealed class GameViewModel : ObservableObject
 
         if (AreNeighbour(_firstSelectedCell, cell))
         {
-            (cell.Shape, _firstSelectedCell.Shape) = (_firstSelectedCell.Shape, cell.Shape);
-            ResolveBoard();
+            var first = _firstSelectedCell;
+            var second = cell;
+
+            (second.Shape, first.Shape) = (first.Shape, second.Shape);
+
+            var matches = FindMatches();
+            if (matches.Contains(first) || matches.Contains(second))
+            {
+                ResolveBoard();
+            }
+            else
+            {
+                // если ход не приводит к совпадению — откатываем
+                (second.Shape, first.Shape) = (first.Shape, second.Shape);
+            }
         }
 
         ClearSelection();
