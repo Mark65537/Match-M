@@ -35,7 +35,6 @@ public sealed class GameViewModel : ObservableObject
             cell.IsSelected = select;
         });
 
-        InitBoard();
         Reset();
     }
 
@@ -51,17 +50,10 @@ public sealed class GameViewModel : ObservableObject
 
     public string TimeText => $"{_timeLeftSeconds / 60:00}:{_timeLeftSeconds % 60:00}";
 
-    private void Start()
-    {
-        if (!_timer.IsEnabled)
-            _timer.Start();
-    }
+    //TODO так ли сильно мне нужны эти функции
+    private void Start() => _timer.Start();
 
-    private void Stop()
-    {
-        if (_timer.IsEnabled)
-            _timer.Stop();
-    }
+    private void Stop() => _timer.Stop();
 
     private void Reset()
     {
@@ -71,6 +63,7 @@ public sealed class GameViewModel : ObservableObject
         InitBoard();
     }
 
+    //TODO можно ли не пересоздавать элементы а менять их
     private void InitBoard()
     {
         Cells.Clear();
@@ -82,7 +75,6 @@ public sealed class GameViewModel : ObservableObject
             for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
             {
                 ShapeType shape = (ShapeType)_random.Next(shapeCount);
-
                 Cells.Add(new Cell(r, c, shape));
             }
         }
@@ -93,23 +85,21 @@ public sealed class GameViewModel : ObservableObject
         switch (_gameStateService.CurrentState)
         {
             case GameState.Menu:
+            case GameState.GameOver:
                 Stop();
                 break;
+
             case GameState.InGame:
                 Reset();
                 Start();
-                break;
-            case GameState.GameOver:
-                Stop();
                 break;
         }
     }
 
     private void Timer_Tick(object? sender, EventArgs e)
     {
-        if (_timeLeftSeconds > 0)
+        if (--_timeLeftSeconds > 0)
         {
-            _timeLeftSeconds--;
             OnPropertyChanged(nameof(TimeText));
             return;
         }
