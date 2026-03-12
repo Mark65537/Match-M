@@ -48,7 +48,7 @@ public sealed class GameViewModel : ObservableObject
     private void Reset()
     {
         Score = 0;
-        _timeLeftSeconds = 60;
+        _timeLeftSeconds = GameConstants.TIME_LIMIT_SECONDS;
         OnPropertyChanged(nameof(TimeText));
         _firstSelectedCell = null;
         InitBoard();

@@ -65,7 +65,7 @@
             <ItemsControl ItemsSource="{Binding Cells}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Columns="8" Rows="8" />
+                        <UniformGrid Columns="{x:Static model:GameConstants.BOARD_COLUMNS}" Rows="{x:Static model:GameConstants.BOARD_ROWS}" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
