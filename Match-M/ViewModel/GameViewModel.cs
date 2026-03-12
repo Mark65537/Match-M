@@ -27,7 +27,12 @@ public sealed class GameViewModel : ObservableObject
             if (cell is null)
                 return;
 
-            cell.IsSelected = !cell.IsSelected;
+            bool select = !cell.IsSelected;
+
+            foreach (var c in Cells)
+                c.IsSelected = false;
+
+            cell.IsSelected = select;
         });
 
         InitBoard();
