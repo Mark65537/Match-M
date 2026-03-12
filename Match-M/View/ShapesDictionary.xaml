@@ -34,9 +34,15 @@
                             <Style TargetType="Path">
                                 <!--  Пустая фигура по умолчанию  -->
                                 <Setter Property="Data" Value="M0,0" />
+                                <Setter Property="Fill" Value="Transparent" />
                                 <!--  Единый внутренний отступ для всех фигур  -->
                                 <Setter Property="Margin" Value="15" />
                                 <Style.Triggers>
+                                    <!--  Пусто  -->
+                                    <DataTrigger Binding="{Binding Shape}" Value="{x:Static model:ShapeType.None}">
+                                        <Setter Property="Data" Value="M0,0" />
+                                        <Setter Property="Fill" Value="Transparent" />
+                                    </DataTrigger>
                                     <!--  Квадрат  -->
                                     <DataTrigger Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Square}">
                                         <Setter Property="Data" Value="M10,10 L90,10 L90,90 L10,90 Z" />

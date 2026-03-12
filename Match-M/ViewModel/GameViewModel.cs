@@ -65,10 +65,12 @@ public sealed class GameViewModel : ObservableObject
         {
             for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
             {
-                ShapeType shape = (ShapeType)_random.Next(shapeCount);
+                ShapeType shape = (ShapeType)_random.Next(1, shapeCount);
                 Cells.Add(new Cell(r, c, shape));
             }
         }
+
+        ResolveBoard();
     }
 
     private void GameState_PropertyChanged()
@@ -120,7 +122,10 @@ public sealed class GameViewModel : ObservableObject
         }
 
         if (AreNeighbour(_firstSelectedCell, cell))
+        {
             (cell.Shape, _firstSelectedCell.Shape) = (_firstSelectedCell.Shape, cell.Shape);
+            ResolveBoard();
+        }
 
         ClearSelection();
         _firstSelectedCell = null;
@@ -143,6 +148,116 @@ public sealed class GameViewModel : ObservableObject
         int dr = Math.Abs(a.Row - b.Row);
         int dc = Math.Abs(a.Column - b.Column);
         return (dr + dc) == 1;
+    }
+
+    private static int GetIndex(int row, int column) =>
+        (row * GameConstants.BOARD_COLUMNS) + column;
+
+    private Cell GetCell(int row, int column) => Cells[GetIndex(row, column)];
+
+    private HashSet<Cell> FindMatches()
+    {
+        var result = new HashSet<Cell>();
+
+        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+        {
+            int c = 0;
+            while (c < GameConstants.BOARD_COLUMNS)
+            {
+                var start = GetCell(r, c);
+                var shape = start.Shape;
+
+                if (shape == ShapeType.None)
+                {
+                    c++;
+                    continue;
+                }
+
+                int runStart = c;
+                int runLen = 1;
+                while (c + runLen < GameConstants.BOARD_COLUMNS && GetCell(r, c + runLen).Shape == shape)
+                    runLen++;
+
+                if (runLen >= GameConstants.MIN_MATCH_LENGTH)
+                {
+                    for (int k = 0; k < runLen; k++)
+                        result.Add(GetCell(r, runStart + k));
+                }
+
+                c = runStart + runLen;
+            }
+        }
+
+        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+        {
+            int r = 0;
+            while (r < GameConstants.BOARD_ROWS)
+            {
+                var start = GetCell(r, c);
+                var shape = start.Shape;
+
+                if (shape == ShapeType.None)
+                {
+                    r++;
+                    continue;
+                }
+
+                int runStart = r;
+                int runLen = 1;
+                while (r + runLen < GameConstants.BOARD_ROWS && GetCell(r + runLen, c).Shape == shape)
+                    runLen++;
+
+                if (runLen >= GameConstants.MIN_MATCH_LENGTH)
+                {
+                    for (int k = 0; k < runLen; k++)
+                        result.Add(GetCell(runStart + k, c));
+                }
+
+                r = runStart + runLen;
+            }
+        }
+
+        return result;
+    }
+
+    private void ResolveBoard()
+    {
+        int shapeCount = Enum.GetValues<ShapeType>().Length;
+
+        while (true)
+        {
+            var matches = FindMatches();
+            if (matches.Count == 0)
+                return;
+
+            foreach (var cell in matches)
+                cell.Shape = ShapeType.None;
+
+            Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
+
+            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+            {
+                int writeRow = GameConstants.BOARD_ROWS - 1;
+
+                for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
+                {
+                    var shape = GetCell(r, c).Shape;
+                    if (shape == ShapeType.None)
+                        continue;
+
+                    if (writeRow != r)
+                    {
+                        GetCell(writeRow, c).Shape = shape;
+                        GetCell(r, c).Shape = ShapeType.None;
+                    }
+
+                    writeRow--;
+                }
+
+                for (int r = writeRow; r >= 0; r--)
+                    GetCell(r, c).Shape = (ShapeType)_random.Next(1, shapeCount); ;
+            }
+        }
     }
 }
 
