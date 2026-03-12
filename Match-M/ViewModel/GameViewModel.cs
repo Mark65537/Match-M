@@ -13,6 +13,7 @@ public sealed class GameViewModel : ObservableObject
     private readonly DispatcherTimer _timer;
     private readonly GameStateService _gameStateService;
     private static readonly Random _random = new();
+    private Cell? _firstSelectedCell = null;
 
     public GameViewModel(GameStateService gameStateService)
     {
@@ -22,18 +23,7 @@ public sealed class GameViewModel : ObservableObject
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
 
-        ToggleCellSelectionCommand = new RelayCommand<Cell>((cell) =>
-        {
-            if (cell is null)
-                return;
-
-            bool select = !cell.IsSelected;
-
-            foreach (var c in Cells)
-                c.IsSelected = false;
-
-            cell.IsSelected = select;
-        });
+        ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
 
         Reset();
     }
@@ -60,6 +50,7 @@ public sealed class GameViewModel : ObservableObject
         Score = 0;
         _timeLeftSeconds = 60;
         OnPropertyChanged(nameof(TimeText));
+        _firstSelectedCell = null;
         InitBoard();
     }
 
@@ -106,6 +97,52 @@ public sealed class GameViewModel : ObservableObject
 
         Stop();
         _gameStateService.CurrentState = GameState.GameOver;
+    }
+
+    private void OnCellClicked(Cell? cell)
+    {
+        if (cell is null)
+            return;
+
+        if (_firstSelectedCell is null)
+        {
+            ClearSelection();
+            cell.IsSelected = true;
+            _firstSelectedCell = cell;
+            return;
+        }
+
+        if (ReferenceEquals(_firstSelectedCell, cell))
+        {
+            ClearSelection();
+            _firstSelectedCell = null;
+            return;
+        }
+
+        if (AreNeighbour(_firstSelectedCell, cell))
+            (cell.Shape, _firstSelectedCell.Shape) = (_firstSelectedCell.Shape, cell.Shape);
+
+        ClearSelection();
+        _firstSelectedCell = null;
+    }
+
+    private void ClearSelection()
+    {
+        foreach (var c in Cells)
+            c.IsSelected = false;
+    }
+
+    /// <summary>
+    /// Проверяет что клетки соседи по вертикали или горизонтали
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <returns></returns>
+    private static bool AreNeighbour(Cell a, Cell b)
+    {
+        int dr = Math.Abs(a.Row - b.Row);
+        int dc = Math.Abs(a.Column - b.Column);
+        return (dr + dc) == 1;
     }
 }
 
