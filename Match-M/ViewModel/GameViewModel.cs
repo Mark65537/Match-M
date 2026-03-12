@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Match_M.Model;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
@@ -21,11 +22,21 @@ public sealed class GameViewModel : ObservableObject
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
 
+        ToggleCellSelectionCommand = new RelayCommand<Cell>((cell) =>
+        {
+            if (cell is null)
+                return;
+
+            cell.IsSelected = !cell.IsSelected;
+        });
+
         InitBoard();
         Reset();
     }
 
     public ObservableCollection<Cell> Cells { get; } = [];
+
+    public RelayCommand<Cell> ToggleCellSelectionCommand { get; }
 
     public int Score
     {
