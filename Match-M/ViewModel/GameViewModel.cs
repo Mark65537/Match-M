@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Match_M.Animations;
 using Match_M.Model;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -47,7 +48,7 @@ public sealed class GameViewModel : ObservableObject
 
     public string TimeText => $"{_timeLeftSeconds / 60:00}:{_timeLeftSeconds % 60:00}";
 
-    //TODO так ли сильно мне нужны эти функции
+    //TODO С‚Р°Рє Р»Рё СЃРёР»СЊРЅРѕ РјРЅРµ РЅСѓР¶РЅС‹ СЌС‚Рё С„СѓРЅРєС†РёРё
     private void Start() => _timer.Start();
 
     private void Stop() => _timer.Stop();
@@ -61,7 +62,7 @@ public sealed class GameViewModel : ObservableObject
         InitBoard();
     }
 
-    //TODO можно ли не пересоздавать элементы а менять их
+    //TODO РјРѕР¶РЅРѕ Р»Рё РЅРµ РїРµСЂРµСЃРѕР·РґР°РІР°С‚СЊ СЌР»РµРјРµРЅС‚С‹ Р° РјРµРЅСЏС‚СЊ РёС…
     private void InitBoard()
     {
         Cells.Clear();
@@ -140,7 +141,7 @@ public sealed class GameViewModel : ObservableObject
             }
             else
             {
-                // если ход не приводит к совпадению — откатываем
+                // РµСЃР»Рё С…РѕРґ РЅРµ РїСЂРёРІРѕРґРёС‚ Рє СЃРѕРІРїР°РґРµРЅРёСЋ вЂ” РѕС‚РєР°С‚С‹РІР°РµРј
                 (second.Shape, first.Shape) = (first.Shape, second.Shape);
             }
         }
@@ -156,7 +157,7 @@ public sealed class GameViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Проверяет что клетки соседи по вертикали или горизонтали
+    /// РџСЂРѕРІРµСЂСЏРµС‚ С‡С‚Рѕ РєР»РµС‚РєРё СЃРѕСЃРµРґРё РїРѕ РІРµСЂС‚РёРєР°Р»Рё РёР»Рё РіРѕСЂРёР·РѕРЅС‚Р°Р»Рё
     /// </summary>
     /// <param name="a"></param>
     /// <param name="b"></param>
@@ -249,7 +250,19 @@ public sealed class GameViewModel : ObservableObject
                 return;
 
             foreach (var cell in matches)
+            {
+                cell.Animation = AnimationType.FadeOut;
+            }
+
+            foreach (var cell in matches)
+            {
                 cell.Shape = ShapeType.None;
+            }
+
+            foreach (var cell in matches)
+            {
+                cell.Animation = AnimationType.None;
+            }
 
             Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
 

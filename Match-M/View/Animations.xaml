@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  Пример анимации перемещения вверх-вниз  -->
+    <Storyboard x:Key="MoveUpDownStoryboard">
+        <DoubleAnimation
+            AutoReverse="True"
+            Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+            From="0"
+            To="-20"
+            Duration="0:0:1" />
+    </Storyboard>
+
+    <!--  Пример анимации затухания  -->
+    <Storyboard x:Key="FadeOutStoryboard">
+        <DoubleAnimation
+            Storyboard.TargetProperty="Opacity"
+            From="1"
+            To="0"
+            Duration="0:0:1" />
+    </Storyboard>
+
+</ResourceDictionary>

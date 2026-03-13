@@ -1,6 +1,8 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behavior="clr-namespace:Match_M.Behaviors"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:model="clr-namespace:Match_M.Model">
 
     <!--  Отображение новой ячейки Cell с векторной фигурой (Path)  -->
@@ -15,7 +17,8 @@
                 Width="75"
                 Height="75"
                 Margin="3"
-                CornerRadius="6">
+                CornerRadius="6"
+                behavior:AnimationBehavior.Animation="{Binding Animation}">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Background" Value="#444" />
