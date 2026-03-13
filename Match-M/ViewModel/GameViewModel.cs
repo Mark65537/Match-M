@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using Match_M.Animations;
 using Match_M.Model;
 using System.Collections.ObjectModel;
-using System.Windows;
 using System.Windows.Threading;
 
 namespace Match_M.ViewModel;
@@ -27,13 +26,30 @@ public sealed class GameViewModel : ObservableObject
 
         ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
 
-        //Выполнение расчета матчей только после полной отрисовки
-        Application.Current.Dispatcher.BeginInvoke(
-            new Action(ResolveBoard),
-            System.Windows.Threading.DispatcherPriority.Render
-        );
-
         Reset();
+        Update();
+    }
+
+    private static readonly TimeSpan FadeOutDuration = TimeSpan.FromSeconds(1);
+
+    private async Task MakeAnimation()
+    {
+        var matches = FindMatches();
+        if (matches.Count == 0)
+            return;
+
+        foreach (var cell in matches)
+        {
+            cell.Animation = AnimationType.FadeOut;
+        }
+
+        // Дожидаемся завершения анимаций перед сбросом состояния
+        await Task.Delay(FadeOutDuration);
+
+        foreach (var cell in matches)
+        {
+            cell.Animation = AnimationType.None;
+        }
     }
 
     public ObservableCollection<Cell> Cells { get; } = [];
@@ -90,6 +106,7 @@ public sealed class GameViewModel : ObservableObject
 
             case GameState.InGame:
                 Reset();
+                Update();
                 Start();
                 break;
         }
@@ -137,7 +154,7 @@ public sealed class GameViewModel : ObservableObject
             var matches = FindMatches();
             if (matches.Contains(first) || matches.Contains(second))
             {
-                ResolveBoard();
+                Update();
             }
             else
             {
@@ -239,6 +256,12 @@ public sealed class GameViewModel : ObservableObject
         return result;
     }
 
+    async void Update()
+    {
+        await MakeAnimation();//ждем когда завершиться анимация затухания
+        ResolveBoard();
+    }
+
     private void ResolveBoard()
     {
         int shapeCount = Enum.GetValues<ShapeType>().Length;
@@ -249,20 +272,12 @@ public sealed class GameViewModel : ObservableObject
             if (matches.Count == 0)
                 return;
 
-            foreach (var cell in matches)
-            {
-                cell.Animation = AnimationType.FadeOut;
-            }
 
             foreach (var cell in matches)
             {
                 cell.Shape = ShapeType.None;
             }
 
-            foreach (var cell in matches)
-            {
-                cell.Animation = AnimationType.None;
-            }
 
             Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
 
