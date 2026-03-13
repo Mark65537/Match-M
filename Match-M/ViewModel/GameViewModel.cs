@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Match_M.Model;
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace Match_M.ViewModel;
@@ -24,6 +25,12 @@ public sealed class GameViewModel : ObservableObject
         _timer.Tick += Timer_Tick;
 
         ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
+
+        //Выполнение расчета матчей только после полной отрисовки
+        Application.Current.Dispatcher.BeginInvoke(
+            new Action(ResolveBoard),
+            System.Windows.Threading.DispatcherPriority.Render
+        );
 
         Reset();
     }
@@ -69,8 +76,6 @@ public sealed class GameViewModel : ObservableObject
                 Cells.Add(new Cell(r, c, shape));
             }
         }
-
-        ResolveBoard();
     }
 
     private void GameState_PropertyChanged()
