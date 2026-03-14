@@ -95,6 +95,25 @@ public sealed class GameViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Prints the board to debug output with each cell's shape as its numeric value (0=None, 1=Square, 2=Circle, 3=Triangle, 4=Diamond, 5=Star).
+    /// </summary>
+    [Conditional("DEBUG")]
+    private void PrintBoard()
+    {
+        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+        {
+            var line = "";
+            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+            {
+                int shapeNumber = (int)GetCell(r, c).Shape;
+                line += shapeNumber + (c < GameConstants.BOARD_COLUMNS - 1 ? " " : "");
+            }
+            Debug.WriteLine(line);
+        }
+        Debug.WriteLine("");
+    }
+
     private void GameState_PropertyChanged()
     {
         switch (_gameStateService.CurrentState)
