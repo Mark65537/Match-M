@@ -15,6 +15,7 @@ public sealed class GameViewModel : ObservableObject
     private int _timeLeftSeconds;
     private readonly DispatcherTimer _timer;
     private readonly GameStateService _gameStateService;
+    private readonly int _shapeCount = Enum.GetValues<ShapeType>().Length;
     private static readonly Random _random = new();
     private Cell? _firstSelectedCell = null;
     private Cell? _lastMovedCell = null;
@@ -41,7 +42,7 @@ public sealed class GameViewModel : ObservableObject
         ResolveBoard();
     }
 
-    private async Task MakeAnimation(HashSet<Cell> cellsToAnimate)
+    private async Task AnimationFadeOut(HashSet<Cell> cellsToAnimate)
     {
         if (cellsToAnimate.Count == 0)
             return;
@@ -65,14 +66,8 @@ public sealed class GameViewModel : ObservableObject
 
     private void AnimationBehavior_AnimationCompleted(object? sender, EventArgs e)
     {
-        if (_pendingAnimations <= 0)
-            return;
-
-        _pendingAnimations--;
-        if (_pendingAnimations == 0)
-        {
+        if (--_pendingAnimations == 0)
             _animationsCompletionSource.TrySetResult();
-        }
     }
 
     public ObservableCollection<Cell> Cells { get; } = [];
@@ -106,17 +101,12 @@ public sealed class GameViewModel : ObservableObject
     {
         Cells.Clear();
 
-        int shapeCount = Enum.GetValues<ShapeType>().Length;
-
         for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-        {
             for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-            {
-                ShapeType shape = (ShapeType)_random.Next(1, shapeCount);
-                Cells.Add(new Cell(r, c, shape));
-            }
-        }
+                Cells.Add(new Cell(r, c, GetRandomShape()));
     }
+
+    private ShapeType GetRandomShape() => (ShapeType)_random.Next(1, _shapeCount);
 
     /// <summary>
     /// Prints the board to debug output with each cell's shape as its numeric value (0=None, 1=Square, 2=Circle, 3=Triangle, 4=Diamond, 5=Star).
@@ -233,14 +223,12 @@ public sealed class GameViewModel : ObservableObject
     }
 
     private static int GetIndex(int row, int column) =>
-        (row * GameConstants.BOARD_COLUMNS) + column;
+        row * GameConstants.BOARD_COLUMNS + column;
 
     private Cell GetCell(int row, int column) => Cells[GetIndex(row, column)];
 
-    private HashSet<Cell> FindMatches()
+    private IEnumerable<IReadOnlyList<Cell>> EnumerateHorizontalRuns()
     {
-        var result = new HashSet<Cell>();
-
         for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
         {
             int c = 0;
@@ -260,16 +248,19 @@ public sealed class GameViewModel : ObservableObject
                 while (c + runLen < GameConstants.BOARD_COLUMNS && GetCell(r, c + runLen).Shape == shape)
                     runLen++;
 
-                if (runLen >= GameConstants.MIN_MATCH_LENGTH)
-                {
-                    for (int k = 0; k < runLen; k++)
-                        result.Add(GetCell(r, runStart + k));
-                }
+                var runCells = new List<Cell>(runLen);
+                for (int k = 0; k < runLen; k++)
+                    runCells.Add(GetCell(r, runStart + k));
+
+                yield return runCells;
 
                 c = runStart + runLen;
             }
         }
+    }
 
+    private IEnumerable<IReadOnlyList<Cell>> EnumerateVerticalRuns()
+    {
         for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
         {
             int r = 0;
@@ -289,14 +280,37 @@ public sealed class GameViewModel : ObservableObject
                 while (r + runLen < GameConstants.BOARD_ROWS && GetCell(r + runLen, c).Shape == shape)
                     runLen++;
 
-                if (runLen >= GameConstants.MIN_MATCH_LENGTH)
-                {
-                    for (int k = 0; k < runLen; k++)
-                        result.Add(GetCell(runStart + k, c));
-                }
+                var runCells = new List<Cell>(runLen);
+                for (int k = 0; k < runLen; k++)
+                    runCells.Add(GetCell(runStart + k, c));
+
+                yield return runCells;
 
                 r = runStart + runLen;
             }
+        }
+    }
+
+    private HashSet<Cell> FindMatches()
+    {
+        var result = new HashSet<Cell>();
+
+        foreach (var run in EnumerateHorizontalRuns())
+        {
+            if (run.Count < GameConstants.MIN_MATCH_LENGTH)
+                continue;
+
+            foreach (var cell in run)
+                result.Add(cell);
+        }
+
+        foreach (var run in EnumerateVerticalRuns())
+        {
+            if (run.Count < GameConstants.MIN_MATCH_LENGTH)
+                continue;
+
+            foreach (var cell in run)
+                result.Add(cell);
         }
 
         return result;
@@ -338,90 +352,37 @@ public sealed class GameViewModel : ObservableObject
         var last = _lastMovedCell;
 
         // По горизонтали
-        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+        foreach (var run in EnumerateHorizontalRuns())
         {
-            int c = 0;
-            while (c < GameConstants.BOARD_COLUMNS)
+            if (run.Count != 4)
+                continue;
+
+            if (run.Contains(last) && matches.IsSupersetOf(run))
             {
-                var start = GetCell(r, c);
-                var shape = start.Shape;
+                // Бонус создаётся в ячейке, которую двигали последней
+                last.Bonus = BonusType.HLine;
 
-                if (shape == ShapeType.None)
-                {
-                    c++;
-                    continue;
-                }
-
-                int runStart = c;
-                int runLen = 1;
-                while (c + runLen < GameConstants.BOARD_COLUMNS && GetCell(r, c + runLen).Shape == shape)
-                    runLen++;
-
-                if (runLen == 4)
-                {
-                    var runCells = new List<Cell>(4);
-                    for (int k = 0; k < runLen; k++)
-                        runCells.Add(GetCell(r, runStart + k));
-
-                    if (runCells.Contains(last) && matches.IsSupersetOf(runCells))
-                    {
-                        // Бонус создаётся в ячейке, которую двигали последней
-                        last.Bonus = BonusType.HLine;
-
-                        // Не удаляем бонус с поля
-                        cellsToClear.Remove(last);
-                        return;
-                    }
-                }
-
-                c = runStart + runLen;
+                // Не удаляем бонус с поля
+                cellsToClear.Remove(last);
+                return;
             }
         }
 
         // По вертикали
-        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+        foreach (var run in EnumerateVerticalRuns())
         {
-            int r = 0;
-            while (r < GameConstants.BOARD_ROWS)
+            if (run.Count != 4)
+                continue;
+
+            if (run.Contains(last) && matches.IsSupersetOf(run))
             {
-                var start = GetCell(r, c);
-                var shape = start.Shape;
+                last.Bonus = BonusType.VLine;
 
-                if (shape == ShapeType.None)
-                {
-                    r++;
-                    continue;
-                }
-
-                int runStart = r;
-                int runLen = 1;
-                while (r + runLen < GameConstants.BOARD_ROWS && GetCell(r + runLen, c).Shape == shape)
-                    runLen++;
-
-                if (runLen == 4)
-                {
-                    var runCells = new List<Cell>(4);
-                    for (int k = 0; k < runLen; k++)
-                        runCells.Add(GetCell(runStart + k, c));
-
-                    if (runCells.Contains(last) && matches.IsSupersetOf(runCells))
-                    {
-                        last.Bonus = BonusType.VLine;
-
-                        cellsToClear.Remove(last);
-                        return;
-                    }
-                }
-
-                r = runStart + runLen;
+                cellsToClear.Remove(last);
+                return;
             }
         }
     }
-
-    //async void Update()
-    //{
-    //    ResolveBoard();
-    //}
 
     private async void ResolveBoard()
     {
@@ -432,126 +393,168 @@ public sealed class GameViewModel : ObservableObject
 
         try
         {
-            int shapeCount = Enum.GetValues<ShapeType>().Length;
-
             while (true)
             {
                 var matches = FindMatches();
                 if (matches.Count == 0)
                     break;
 
-                // Клетки, которые действительно будут очищены на этой итерации
-                var cellsToClear = new HashSet<Cell>(matches);
+                var cellsToClear = PrepareCellsToClear(matches);
 
-                // 1. Активируем уже существующие Line‑бонусы, если они попали в матч:
-                //    добавляем всю строку/столбец к очистке.
-                ActivateLineBonuses(matches, cellsToClear);
+                await AnimationFadeOut(cellsToClear);
 
-                // 2. Попробуем создать новый Line‑бонус из комбинации 4 в ряд,
-                //    если ход был совершен игроком (_lastMovedCell != null).
-                if (_lastMovedCell is not null)
-                {
-                    CreateLineBonuses(matches, cellsToClear);
-                    _lastMovedCell = null;
-                }
-
-                await MakeAnimation(cellsToClear); // ждём завершения анимации затухания
-
-                foreach (var cell in cellsToClear)
-                {
-                    cell.Shape = ShapeType.None;
-                    cell.Bonus = BonusType.None;
-                }
+                ClearCells(cellsToClear);
 
                 Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
 
-                // Собираем падения по колонкам: фигура с (fromRow, c) падает до первого не нулевого — в (toRow, c)
-                var fallMoves = new List<(int fromRow, int toRow, int col)>();
-                for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-                {
-                    int writeRow = GameConstants.BOARD_ROWS - 1;
-                    for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
-                    {
-                        if (GetCell(r, c).Shape == ShapeType.None)
-                            continue;
-                        if (writeRow != r)
-                            fallMoves.Add((r, writeRow, c));
-                        writeRow--;
-                    }
-                }
-
-                // Запускаем анимацию падения и ждём завершения
-                if (fallMoves.Count > 0)
-                {
-                    _pendingAnimations = fallMoves.Count;
-                    _animationsCompletionSource = new TaskCompletionSource();
-
-                    foreach (var (fromRow, toRow, col) in fallMoves)
-                    {
-                        var cell = GetCell(fromRow, col);
-                        cell.FallDistanceCells = (toRow - fromRow);
-                        cell.Animation = AnimationType.MoveUpDown;
-                    }
-
-                    await _animationsCompletionSource.Task;
-                }
-
-                // 2. Перенос данных: фигуры (вместе с бонусами) вниз до первого не нулевого; сверху заполняем новыми (пока без анимации)
-                var newCells = new List<Cell>();
-                for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-                {
-                    int writeRow = GameConstants.BOARD_ROWS - 1;
-                    for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
-                    {
-                        var fromCell = GetCell(r, c);
-                        if (fromCell.Shape == ShapeType.None)
-                            continue;
-                        if (writeRow != r)
-                        {
-                            var toCell = GetCell(writeRow, c);
-                            // Переносим и фигуру, и бонус
-                            toCell.Shape = fromCell.Shape;
-                            toCell.Bonus = fromCell.Bonus;
-
-                            fromCell.Shape = ShapeType.None;
-                            fromCell.Bonus = BonusType.None;
-                        }
-                        writeRow--;
-                    }
-
-                    for (int r = writeRow; r >= 0; r--)
-                    {
-                        var cell = GetCell(r, c);
-                        cell.Shape = (ShapeType)_random.Next(1, shapeCount);
-                        cell.Bonus = BonusType.None;
-                        newCells.Add(cell);
-                    }
-                }
-
-                // Сброс трансформа у ячеек, которые падали
-                if (fallMoves.Count > 0)
-                {
-                    foreach (var (fromRow, _, col) in fallMoves)
-                    {
-                        var cell = GetCell(fromRow, col);
-                        cell.FallDistanceCells = 0;
-                        cell.Animation = AnimationType.None;
-                    }
-                }
-
-                // 3. Сброс Opacity у всех ячеек (BeginAnimation(OpacityProperty, null)), иначе остаются «пустые» артефакты
-                foreach (var cell in Cells)
-                    cell.Animation = AnimationType.None;
-
-                // 4. Новые фигуры (которых не было на доске) появляются с FadeIn
-                foreach (var cell in newCells)
-                    cell.Animation = AnimationType.FadeIn;
+                await ApplyGravity();
             }
         }
         finally
         {
             _isResolving = false;
         }
+    }
+
+    private HashSet<Cell> PrepareCellsToClear(HashSet<Cell> matches)
+    {
+        var cellsToClear = new HashSet<Cell>(matches);
+
+        ActivateLineBonuses(matches, cellsToClear);
+
+        if (_lastMovedCell is not null)
+        {
+            CreateLineBonuses(matches, cellsToClear);
+            _lastMovedCell = null;
+        }
+
+        return cellsToClear;
+    }
+
+    private static void ClearCells(IEnumerable<Cell> cells)
+    {
+        foreach (var cell in cells)
+        {
+            cell.Shape = ShapeType.None;
+            cell.Bonus = BonusType.None;
+        }
+    }
+
+    private async Task ApplyGravity()
+    {
+        var fallMoves = CollectFallMoves();
+
+        if (fallMoves.Count > 0)
+            await AnimateFalls(fallMoves);
+
+        var newCells = MoveCellsDownAndSpawn();
+
+        ResetAnimations();
+
+        foreach (var cell in newCells)
+            cell.Animation = AnimationType.FadeIn;
+    }
+
+    private List<Cell> MoveCellsDownAndSpawn()
+    {
+        var newCells = new List<Cell>();
+
+        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+        {
+            int writeRow = GameConstants.BOARD_ROWS - 1;
+
+            // перенос существующих фигур вниз
+            for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
+            {
+                var fromCell = GetCell(r, c);
+
+                if (fromCell.Shape == ShapeType.None)
+                    continue;
+
+                if (writeRow != r)
+                {
+                    var toCell = GetCell(writeRow, c);
+
+                    toCell.Shape = fromCell.Shape;
+                    toCell.Bonus = fromCell.Bonus;
+
+                    fromCell.Shape = ShapeType.None;
+                    fromCell.Bonus = BonusType.None;
+                }
+
+                writeRow--;
+            }
+
+            // создаём новые фигуры сверху
+            for (int r = writeRow; r >= 0; r--)
+            {
+                var cell = GetCell(r, c);
+
+                cell.Shape = GetRandomShape();
+                cell.Bonus = BonusType.None;
+
+                newCells.Add(cell);
+            }
+        }
+
+        return newCells;
+    }
+
+    private void ResetAnimations()
+    {
+        foreach (var cell in Cells)
+        {
+            cell.FallDistanceCells = 0;
+            cell.Animation = AnimationType.None;
+        }
+    }
+
+    private List<(int fromRow, int toRow, int col)> CollectFallMoves()
+    {
+        var moves = new List<(int, int, int)>();
+
+        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+        {
+            int writeRow = GameConstants.BOARD_ROWS - 1;
+
+            for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
+            {
+                if (GetCell(r, c).Shape == ShapeType.None)
+                    continue;
+
+                if (writeRow != r)
+                    moves.Add((r, writeRow, c));
+
+                writeRow--;
+            }
+        }
+
+        return moves;
+    }
+
+    private async Task AnimateFalls(List<(int fromRow, int toRow, int col)> moves)
+    {
+        var wait = WaitAnimations(moves.Count);
+
+        foreach (var (fromRow, toRow, col) in moves)
+        {
+            var cell = GetCell(fromRow, col);
+            cell.FallDistanceCells = toRow - fromRow;
+            cell.Animation = AnimationType.MoveUpDown;
+        }
+
+        await wait;
+    }
+
+    private Task WaitAnimations(int count)
+    {
+        if (count == 0)
+            return Task.CompletedTask;
+
+        _pendingAnimations = count;
+        _animationsCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        return _animationsCompletionSource.Task;
     }
 }
 
