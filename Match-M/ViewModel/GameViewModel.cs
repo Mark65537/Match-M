@@ -344,7 +344,7 @@ public sealed class GameViewModel : ObservableObject
                 foreach (var (fromRow, toRow, col) in fallMoves)
                 {
                     var cell = GetCell(fromRow, col);
-                    cell.FallDistancePixels = (toRow - fromRow) * GameConstants.CELL_HEIGHT_PIXELS;
+                    cell.FallDistanceCells = (toRow - fromRow);
                     cell.Animation = AnimationType.MoveUpDown;
                 }
 
@@ -383,7 +383,7 @@ public sealed class GameViewModel : ObservableObject
                 foreach (var (fromRow, _, col) in fallMoves)
                 {
                     var cell = GetCell(fromRow, col);
-                    cell.FallDistancePixels = 0;
+                    cell.FallDistanceCells = 0;
                     cell.Animation = AnimationType.None;
                 }
             }

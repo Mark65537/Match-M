@@ -59,11 +59,14 @@ namespace Match_M.Behaviors
                 element.RenderTransform = new TranslateTransform();
 
             // Падение на заданное расстояние (до первого не нулевого): анимация из кода
-            if (key == "MoveUpDownStoryboard" && element is FrameworkElement fe && fe.DataContext is Cell cell && cell.FallDistancePixels > 0)
+            if (key == "MoveUpDownStoryboard" && element is FrameworkElement fe && fe.DataContext is Cell cell && cell.FallDistanceCells > 0)
             {
+                var pitch = GetCellPitchPixels(fe);
+                var fallDistancePixels = cell.FallDistanceCells * pitch;
+
                 var sb = new Storyboard();
-                var duration = TimeSpan.FromMilliseconds(150 + (cell.FallDistancePixels / 2));
-                var anim = new DoubleAnimation(0, cell.FallDistancePixels, new Duration(duration));
+                var duration = TimeSpan.FromMilliseconds(120 + (fallDistancePixels * 0.9));
+                var anim = new DoubleAnimation(0, fallDistancePixels, new Duration(duration));
                 Storyboard.SetTarget(anim, element);
                 Storyboard.SetTargetProperty(anim, new PropertyPath("(UIElement.RenderTransform).(TranslateTransform.Y)"));
                 sb.Children.Add(anim);
@@ -76,10 +79,22 @@ namespace Match_M.Behaviors
             storyboard = storyboard.Clone();
 
             Storyboard.SetTarget(storyboard, element);
-
             storyboard.Completed += (_, _) => AnimationCompleted?.Invoke(element, EventArgs.Empty);
-
             storyboard.Begin();
+        }
+
+        private static double GetCellPitchPixels(FrameworkElement element)
+        {
+            // Height + Margin даёт "шаг" в UniformGrid (для вашего Border Height=75, Margin=3 => ~81).
+            // Если ActualHeight ещё не измерен, подстрахуемся минимальным значением.
+            var h = element.ActualHeight;
+            if (h <= 0)
+                h = element.Height;
+            if (double.IsNaN(h) || h <= 0)
+                h = 75;
+
+            var m = element.Margin;
+            return h + m.Top + m.Bottom;
         }
     }
 }
