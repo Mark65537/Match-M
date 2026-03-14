@@ -15,6 +15,11 @@ public enum AnimationType
     /// <summary>
     /// Краткое затухание.
     /// </summary>
-    FadeOut
+    FadeOut,
+
+    /// <summary>
+    /// Появление (для новых фигур сверху).
+    /// </summary>
+    FadeIn
 }
 

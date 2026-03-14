@@ -29,6 +29,11 @@ public class Cell : ObservableObject
     public int Row { get; }
     public int Column { get; }
 
+    /// <summary>
+    /// Расстояние падения в пикселях для анимации (используется поведением при Animation = MoveUpDown).
+    /// </summary>
+    public double FallDistancePixels { get; set; }
+
     public Cell(int row, int column, ShapeType shape)
     {
         Row = row;

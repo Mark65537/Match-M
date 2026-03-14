@@ -27,6 +27,11 @@ public static class GameConstants
     public const int BOARD_COLUMNS = 8;
 
     /// <summary>
+    /// Высота одной ячейки в пикселях (для анимации падения).
+    /// </summary>
+    public const double CELL_HEIGHT_PIXELS = 80;
+
+    /// <summary>
     /// Минимальная длина последовательности для совпадения (match).
     /// </summary>
     public const int MIN_MATCH_LENGTH = 3;
