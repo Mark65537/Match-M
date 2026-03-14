@@ -6,6 +6,8 @@ namespace Match_M.Behaviors
 {
     public static class AnimationBehavior
     {
+        public static event EventHandler? AnimationCompleted;
+
         private static readonly ResourceDictionary AnimationsDictionary =
             new()
             {
@@ -34,7 +36,7 @@ namespace Match_M.Behaviors
 
             var animation = (AnimationType)e.NewValue;
 
-            string key = animation switch
+            string? key = animation switch
             {
                 AnimationType.None => null,
                 AnimationType.MoveUpDown => "MoveUpDownStoryboard",
@@ -43,7 +45,11 @@ namespace Match_M.Behaviors
             };
 
             if (key == null)
+            {
+                // Снимаем анимацию с Opacity (WPF держит 0 после FadeOut), чтобы вернуть значение 1
+                element.BeginAnimation(UIElement.OpacityProperty, null);
                 return;
+            }
 
             var storyboard =
                 (Storyboard)AnimationsDictionary[key];
@@ -51,6 +57,8 @@ namespace Match_M.Behaviors
             storyboard = storyboard.Clone();
 
             Storyboard.SetTarget(storyboard, element);
+
+            storyboard.Completed += (_, _) => AnimationCompleted?.Invoke(element, EventArgs.Empty);
 
             storyboard.Begin();
         }

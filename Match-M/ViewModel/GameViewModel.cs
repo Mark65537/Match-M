@@ -1,8 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Match_M.Animations;
+using Match_M.Behaviors;
 using Match_M.Model;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows.Threading;
 
 namespace Match_M.ViewModel;
@@ -16,10 +18,14 @@ public sealed class GameViewModel : ObservableObject
     private static readonly Random _random = new();
     private Cell? _firstSelectedCell = null;
 
+    private int _pendingFadeOutAnimations;
+    private TaskCompletionSource _animationsCompletionSource = new();
+
     public GameViewModel(GameStateService gameStateService)
     {
         _gameStateService = gameStateService;
         _gameStateService.StateChanged += GameState_PropertyChanged;
+        AnimationBehavior.AnimationCompleted += AnimationBehavior_AnimationCompleted;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
@@ -27,10 +33,8 @@ public sealed class GameViewModel : ObservableObject
         ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
 
         Reset();
-        Update();
+        ResolveBoard();
     }
-
-    private static readonly TimeSpan FadeOutDuration = TimeSpan.FromSeconds(1);
 
     private async Task MakeAnimation()
     {
@@ -38,17 +42,32 @@ public sealed class GameViewModel : ObservableObject
         if (matches.Count == 0)
             return;
 
+        _pendingFadeOutAnimations = matches.Count;
+        _animationsCompletionSource = new TaskCompletionSource();
+
         foreach (var cell in matches)
         {
             cell.Animation = AnimationType.FadeOut;
         }
 
-        // Дожидаемся завершения анимаций перед сбросом состояния
-        await Task.Delay(FadeOutDuration);
+        // Дожидаемся завершения всех анимаций через событие из AnimationBehavior
+        await _animationsCompletionSource.Task;
 
         foreach (var cell in matches)
         {
             cell.Animation = AnimationType.None;
+        }
+    }
+
+    private void AnimationBehavior_AnimationCompleted(object? sender, EventArgs e)
+    {
+        if (_pendingFadeOutAnimations <= 0)
+            return;
+
+        _pendingFadeOutAnimations--;
+        if (_pendingFadeOutAnimations == 0)
+        {
+            _animationsCompletionSource.TrySetResult();
         }
     }
 
@@ -125,7 +144,7 @@ public sealed class GameViewModel : ObservableObject
 
             case GameState.InGame:
                 Reset();
-                Update();
+                ResolveBoard();
                 Start();
                 break;
         }
@@ -173,7 +192,7 @@ public sealed class GameViewModel : ObservableObject
             var matches = FindMatches();
             if (matches.Contains(first) || matches.Contains(second))
             {
-                Update();
+                ResolveBoard();
             }
             else
             {
@@ -275,13 +294,12 @@ public sealed class GameViewModel : ObservableObject
         return result;
     }
 
-    async void Update()
-    {
-        await MakeAnimation();//ждем когда завершиться анимация затухания
-        ResolveBoard();
-    }
+    //async void Update()
+    //{
+    //    ResolveBoard();
+    //}
 
-    private void ResolveBoard()
+    private async void ResolveBoard()
     {
         int shapeCount = Enum.GetValues<ShapeType>().Length;
 
@@ -290,6 +308,8 @@ public sealed class GameViewModel : ObservableObject
             var matches = FindMatches();
             if (matches.Count == 0)
                 return;
+
+            await MakeAnimation();//ждем когда завершиться анимация затухания
 
 
             foreach (var cell in matches)
