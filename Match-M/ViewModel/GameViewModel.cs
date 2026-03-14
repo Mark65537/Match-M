@@ -17,6 +17,7 @@ public sealed class GameViewModel : ObservableObject
     private readonly GameStateService _gameStateService;
     private static readonly Random _random = new();
     private Cell? _firstSelectedCell = null;
+    private Cell? _lastMovedCell = null;
 
     private bool _isResolving;
 
@@ -40,16 +41,15 @@ public sealed class GameViewModel : ObservableObject
         ResolveBoard();
     }
 
-    private async Task MakeAnimation()
+    private async Task MakeAnimation(HashSet<Cell> cellsToAnimate)
     {
-        var matches = FindMatches();
-        if (matches.Count == 0)
+        if (cellsToAnimate.Count == 0)
             return;
 
-        _pendingAnimations = matches.Count;
+        _pendingAnimations = cellsToAnimate.Count;
         _animationsCompletionSource = new TaskCompletionSource();
 
-        foreach (var cell in matches)
+        foreach (var cell in cellsToAnimate)
         {
             cell.Animation = AnimationType.FadeOut;
         }
@@ -199,6 +199,7 @@ public sealed class GameViewModel : ObservableObject
             var matches = FindMatches();
             if (matches.Contains(first) || matches.Contains(second))
             {
+                _lastMovedCell = second;
                 ResolveBoard();
             }
             else
@@ -301,6 +302,122 @@ public sealed class GameViewModel : ObservableObject
         return result;
     }
 
+    /// <summary>
+    /// Активирует уже существующие Line‑бонусы (HLine / VLine), попавшие в матч:
+    /// добавляет к очистке всю строку или столбец, включая саму ячейку‑бонус.
+    /// </summary>
+    private void ActivateLineBonuses(HashSet<Cell> matches, HashSet<Cell> cellsToClear)
+    {
+        foreach (var cell in matches)
+        {
+            switch (cell.Bonus)
+            {
+                case BonusType.HLine:
+                    for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+                        cellsToClear.Add(GetCell(cell.Row, c));
+                    break;
+
+                case BonusType.VLine:
+                    for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+                        cellsToClear.Add(GetCell(r, cell.Column));
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ищет комбинации ровно из четырёх одинаковых фигур, которые включают
+    /// последний сдвинутый элемент, и превращает этот элемент в бонус Line
+    /// Сам бонус из очистки исключается (остается на поле).
+    /// </summary>
+    private void CreateLineBonuses(HashSet<Cell> matches, HashSet<Cell> cellsToClear)
+    {
+        if (_lastMovedCell is null)
+            return;
+
+        var last = _lastMovedCell;
+
+        // По горизонтали
+        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+        {
+            int c = 0;
+            while (c < GameConstants.BOARD_COLUMNS)
+            {
+                var start = GetCell(r, c);
+                var shape = start.Shape;
+
+                if (shape == ShapeType.None)
+                {
+                    c++;
+                    continue;
+                }
+
+                int runStart = c;
+                int runLen = 1;
+                while (c + runLen < GameConstants.BOARD_COLUMNS && GetCell(r, c + runLen).Shape == shape)
+                    runLen++;
+
+                if (runLen == 4)
+                {
+                    var runCells = new List<Cell>(4);
+                    for (int k = 0; k < runLen; k++)
+                        runCells.Add(GetCell(r, runStart + k));
+
+                    if (runCells.Contains(last) && matches.IsSupersetOf(runCells))
+                    {
+                        // Бонус создаётся в ячейке, которую двигали последней
+                        last.Bonus = BonusType.HLine;
+
+                        // Не удаляем бонус с поля
+                        cellsToClear.Remove(last);
+                        return;
+                    }
+                }
+
+                c = runStart + runLen;
+            }
+        }
+
+        // По вертикали
+        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+        {
+            int r = 0;
+            while (r < GameConstants.BOARD_ROWS)
+            {
+                var start = GetCell(r, c);
+                var shape = start.Shape;
+
+                if (shape == ShapeType.None)
+                {
+                    r++;
+                    continue;
+                }
+
+                int runStart = r;
+                int runLen = 1;
+                while (r + runLen < GameConstants.BOARD_ROWS && GetCell(r + runLen, c).Shape == shape)
+                    runLen++;
+
+                if (runLen == 4)
+                {
+                    var runCells = new List<Cell>(4);
+                    for (int k = 0; k < runLen; k++)
+                        runCells.Add(GetCell(runStart + k, c));
+
+                    if (runCells.Contains(last) && matches.IsSupersetOf(runCells))
+                    {
+                        last.Bonus = BonusType.VLine;
+
+                        cellsToClear.Remove(last);
+                        return;
+                    }
+                }
+
+                r = runStart + runLen;
+            }
+        }
+    }
+
     //async void Update()
     //{
     //    ResolveBoard();
@@ -323,14 +440,28 @@ public sealed class GameViewModel : ObservableObject
                 if (matches.Count == 0)
                     break;
 
-                await MakeAnimation();//ждем когда завершиться анимация затухания
+                // Клетки, которые действительно будут очищены на этой итерации
+                var cellsToClear = new HashSet<Cell>(matches);
 
+                // 1. Активируем уже существующие Line‑бонусы, если они попали в матч:
+                //    добавляем всю строку/столбец к очистке.
+                ActivateLineBonuses(matches, cellsToClear);
 
-                foreach (var cell in matches)
+                // 2. Попробуем создать новый Line‑бонус из комбинации 4 в ряд,
+                //    если ход был совершен игроком (_lastMovedCell != null).
+                if (_lastMovedCell is not null)
                 {
-                    cell.Shape = ShapeType.None;
+                    CreateLineBonuses(matches, cellsToClear);
+                    _lastMovedCell = null;
                 }
 
+                await MakeAnimation(cellsToClear); // ждём завершения анимации затухания
+
+                foreach (var cell in cellsToClear)
+                {
+                    cell.Shape = ShapeType.None;
+                    cell.Bonus = BonusType.None;
+                }
 
                 Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
 
@@ -365,20 +496,25 @@ public sealed class GameViewModel : ObservableObject
                     await _animationsCompletionSource.Task;
                 }
 
-                // 2. Перенос данных: фигуры вниз до первого не нулевого; сверху заполняем новыми (пока без анимации)
+                // 2. Перенос данных: фигуры (вместе с бонусами) вниз до первого не нулевого; сверху заполняем новыми (пока без анимации)
                 var newCells = new List<Cell>();
                 for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
                 {
                     int writeRow = GameConstants.BOARD_ROWS - 1;
                     for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
                     {
-                        var shape = GetCell(r, c).Shape;
-                        if (shape == ShapeType.None)
+                        var fromCell = GetCell(r, c);
+                        if (fromCell.Shape == ShapeType.None)
                             continue;
                         if (writeRow != r)
                         {
-                            GetCell(writeRow, c).Shape = shape;
-                            GetCell(r, c).Shape = ShapeType.None;
+                            var toCell = GetCell(writeRow, c);
+                            // Переносим и фигуру, и бонус
+                            toCell.Shape = fromCell.Shape;
+                            toCell.Bonus = fromCell.Bonus;
+
+                            fromCell.Shape = ShapeType.None;
+                            fromCell.Bonus = BonusType.None;
                         }
                         writeRow--;
                     }
@@ -387,6 +523,7 @@ public sealed class GameViewModel : ObservableObject
                     {
                         var cell = GetCell(r, c);
                         cell.Shape = (ShapeType)_random.Next(1, shapeCount);
+                        cell.Bonus = BonusType.None;
                         newCells.Add(cell);
                     }
                 }

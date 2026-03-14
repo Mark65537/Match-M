@@ -71,6 +71,104 @@
                                         <Setter Property="Data" Value="M50,15 L58,35 L80,35 L62,50 L69,72 L50,60 L31,72 L38,50 L20,35 L42,35 Z" />
                                         <Setter Property="Fill" Value="#F1C40F" />
                                     </DataTrigger>
+
+                                    <!--  Line‑бонусы: горизонтальный / вертикальный.
+                                          Определяются по BonusType, цвет берём из Shape.  -->
+
+                                    <!--  LineBonus Horizontal (стрелка ↔) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.HLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Square}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M15,50 L25,45 L25,47 L75,47 L75,43 L85,50 L75,57 L75,53 L25,53 L25,55 Z" />
+                                        <Setter Property="Fill" Value="#3FA9F5" />
+                                    </MultiDataTrigger>
+                                    <!--  LineBonus Vertical (стрелка ↨) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.VLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Square}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,15 L55,25 L53,25 L53,75 L57,75 L50,85 L43,75 L47,75 L47,25 L45,25 Z" />
+                                        <Setter Property="Fill" Value="#3FA9F5" />
+                                    </MultiDataTrigger>
+
+                                    <!--  Circle Line Horizontal (стрелка ↔) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.HLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Circle}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M15,50 L25,45 L25,47 L75,47 L75,43 L85,50 L75,57 L75,53 L25,53 L25,55 Z" />
+                                        <Setter Property="Fill" Value="#FF9F1C" />
+                                    </MultiDataTrigger>
+                                    <!--  Circle Line Vertical (стрелка ↨) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.VLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Circle}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,15 L55,25 L53,25 L53,75 L57,75 L50,85 L43,75 L47,75 L47,25 L45,25 Z" />
+                                        <Setter Property="Fill" Value="#FF9F1C" />
+                                    </MultiDataTrigger>
+
+                                    <!--  Triangle Line Horizontal (стрелка ↔) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.HLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Triangle}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M15,50 L25,45 L25,47 L75,47 L75,43 L85,50 L75,57 L75,53 L25,53 L25,55 Z" />
+                                        <Setter Property="Fill" Value="#2ECC71" />
+                                    </MultiDataTrigger>
+                                    <!--  Triangle Line Vertical (стрелка ↨) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.VLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Triangle}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,15 L55,25 L53,25 L53,75 L57,75 L50,85 L43,75 L47,75 L47,25 L45,25 Z" />
+                                        <Setter Property="Fill" Value="#2ECC71" />
+                                    </MultiDataTrigger>
+
+                                    <!--  Diamond Line Horizontal (стрелка ↔) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.HLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Diamond}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M15,50 L25,45 L25,47 L75,47 L75,43 L85,50 L75,57 L75,53 L25,53 L25,55 Z" />
+                                        <Setter Property="Fill" Value="#9B59B6" />
+                                    </MultiDataTrigger>
+                                    <!--  Diamond Line Vertical (стрелка ↨) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.VLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Diamond}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,15 L55,25 L53,25 L53,75 L57,75 L50,85 L43,75 L47,75 L47,25 L45,25 Z" />
+                                        <Setter Property="Fill" Value="#9B59B6" />
+                                    </MultiDataTrigger>
+
+                                    <!--  Star Line Horizontal (стрелка ↔) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.HLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Star}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M15,50 L25,45 L25,47 L75,47 L75,43 L85,50 L75,57 L75,53 L25,53 L25,55 Z" />
+                                        <Setter Property="Fill" Value="#F1C40F" />
+                                    </MultiDataTrigger>
+                                    <!--  Star Line Vertical (стрелка ↨) -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.VLine}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Star}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,15 L55,25 L53,25 L53,75 L57,75 L50,85 L43,75 L47,75 L47,25 L45,25 Z" />
+                                        <Setter Property="Fill" Value="#F1C40F" />
+                                    </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Path.Style>
