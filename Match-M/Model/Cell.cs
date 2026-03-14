@@ -7,6 +7,7 @@ public class Cell : ObservableObject
     private ShapeType _shape;
     private bool _isSelected;
     private AnimationType _animation;
+    private BonusType _bonus;
 
     public ShapeType Shape
     {
@@ -24,6 +25,15 @@ public class Cell : ObservableObject
     {
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
+    }
+
+    /// <summary>
+    /// Тип бонуса в ячейке (линия, бомба и т.п.).
+    /// </summary>
+    public BonusType Bonus
+    {
+        get => _bonus;
+        set => SetProperty(ref _bonus, value);
     }
 
     public int Row { get; }
