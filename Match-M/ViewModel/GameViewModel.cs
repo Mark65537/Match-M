@@ -18,6 +18,8 @@ public sealed class GameViewModel : ObservableObject
     private static readonly Random _random = new();
     private Cell? _firstSelectedCell = null;
 
+    private bool _isResolving;
+
     private int _pendingAnimations;
     private TaskCompletionSource _animationsCompletionSource = new();
 
@@ -30,6 +32,8 @@ public sealed class GameViewModel : ObservableObject
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
 
+        // Команда всегда доступна, но внутри обработчика мы игнорируем клики,
+        // пока идёт ResolveBoard (IsResolving = true).
         ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
 
         Reset();
@@ -164,6 +168,9 @@ public sealed class GameViewModel : ObservableObject
 
     private void OnCellClicked(Cell? cell)
     {
+        if (_isResolving)
+            return;
+
         if (cell is null)
             return;
 
@@ -301,100 +308,112 @@ public sealed class GameViewModel : ObservableObject
 
     private async void ResolveBoard()
     {
-        int shapeCount = Enum.GetValues<ShapeType>().Length;
+        if (_isResolving)
+            return;
 
-        while (true)
+        _isResolving = true;
+
+        try
         {
-            var matches = FindMatches();
-            if (matches.Count == 0)
-                return;
+            int shapeCount = Enum.GetValues<ShapeType>().Length;
 
-            await MakeAnimation();//ждем когда завершиться анимация затухания
-
-
-            foreach (var cell in matches)
+            while (true)
             {
-                cell.Shape = ShapeType.None;
-            }
+                var matches = FindMatches();
+                if (matches.Count == 0)
+                    break;
+
+                await MakeAnimation();//ждем когда завершиться анимация затухания
 
 
-            Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
-
-            // Собираем падения по колонкам: фигура с (fromRow, c) падает до первого не нулевого — в (toRow, c)
-            var fallMoves = new List<(int fromRow, int toRow, int col)>();
-            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-            {
-                int writeRow = GameConstants.BOARD_ROWS - 1;
-                for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
+                foreach (var cell in matches)
                 {
-                    if (GetCell(r, c).Shape == ShapeType.None)
-                        continue;
-                    if (writeRow != r)
-                        fallMoves.Add((r, writeRow, c));
-                    writeRow--;
-                }
-            }
-
-            // Запускаем анимацию падения и ждём завершения
-            if (fallMoves.Count > 0)
-            {
-                _pendingAnimations = fallMoves.Count;
-                _animationsCompletionSource = new TaskCompletionSource();
-
-                foreach (var (fromRow, toRow, col) in fallMoves)
-                {
-                    var cell = GetCell(fromRow, col);
-                    cell.FallDistanceCells = (toRow - fromRow);
-                    cell.Animation = AnimationType.MoveUpDown;
+                    cell.Shape = ShapeType.None;
                 }
 
-                await _animationsCompletionSource.Task;
-            }
 
-            // 2. Перенос данных: фигуры вниз до первого не нулевого; сверху заполняем новыми (пока без анимации)
-            var newCells = new List<Cell>();
-            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-            {
-                int writeRow = GameConstants.BOARD_ROWS - 1;
-                for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
+                Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
+
+                // Собираем падения по колонкам: фигура с (fromRow, c) падает до первого не нулевого — в (toRow, c)
+                var fallMoves = new List<(int fromRow, int toRow, int col)>();
+                for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
                 {
-                    var shape = GetCell(r, c).Shape;
-                    if (shape == ShapeType.None)
-                        continue;
-                    if (writeRow != r)
+                    int writeRow = GameConstants.BOARD_ROWS - 1;
+                    for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
                     {
-                        GetCell(writeRow, c).Shape = shape;
-                        GetCell(r, c).Shape = ShapeType.None;
+                        if (GetCell(r, c).Shape == ShapeType.None)
+                            continue;
+                        if (writeRow != r)
+                            fallMoves.Add((r, writeRow, c));
+                        writeRow--;
                     }
-                    writeRow--;
                 }
 
-                for (int r = writeRow; r >= 0; r--)
+                // Запускаем анимацию падения и ждём завершения
+                if (fallMoves.Count > 0)
                 {
-                    var cell = GetCell(r, c);
-                    cell.Shape = (ShapeType)_random.Next(1, shapeCount);
-                    newCells.Add(cell);
-                }
-            }
+                    _pendingAnimations = fallMoves.Count;
+                    _animationsCompletionSource = new TaskCompletionSource();
 
-            // Сброс трансформа у ячеек, которые падали
-            if (fallMoves.Count > 0)
-            {
-                foreach (var (fromRow, _, col) in fallMoves)
+                    foreach (var (fromRow, toRow, col) in fallMoves)
+                    {
+                        var cell = GetCell(fromRow, col);
+                        cell.FallDistanceCells = (toRow - fromRow);
+                        cell.Animation = AnimationType.MoveUpDown;
+                    }
+
+                    await _animationsCompletionSource.Task;
+                }
+
+                // 2. Перенос данных: фигуры вниз до первого не нулевого; сверху заполняем новыми (пока без анимации)
+                var newCells = new List<Cell>();
+                for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
                 {
-                    var cell = GetCell(fromRow, col);
-                    cell.FallDistanceCells = 0;
+                    int writeRow = GameConstants.BOARD_ROWS - 1;
+                    for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
+                    {
+                        var shape = GetCell(r, c).Shape;
+                        if (shape == ShapeType.None)
+                            continue;
+                        if (writeRow != r)
+                        {
+                            GetCell(writeRow, c).Shape = shape;
+                            GetCell(r, c).Shape = ShapeType.None;
+                        }
+                        writeRow--;
+                    }
+
+                    for (int r = writeRow; r >= 0; r--)
+                    {
+                        var cell = GetCell(r, c);
+                        cell.Shape = (ShapeType)_random.Next(1, shapeCount);
+                        newCells.Add(cell);
+                    }
+                }
+
+                // Сброс трансформа у ячеек, которые падали
+                if (fallMoves.Count > 0)
+                {
+                    foreach (var (fromRow, _, col) in fallMoves)
+                    {
+                        var cell = GetCell(fromRow, col);
+                        cell.FallDistanceCells = 0;
+                        cell.Animation = AnimationType.None;
+                    }
+                }
+
+                // 3. Сброс Opacity у всех ячеек (BeginAnimation(OpacityProperty, null)), иначе остаются «пустые» артефакты
+                foreach (var cell in Cells)
                     cell.Animation = AnimationType.None;
-                }
+
+                // 4. Новые фигуры (которых не было на доске) появляются с FadeIn
+                foreach (var cell in newCells)
+                    cell.Animation = AnimationType.FadeIn;
             }
-
-            // 3. Сброс Opacity у всех ячеек (BeginAnimation(OpacityProperty, null)), иначе остаются «пустые» артефакты
-            foreach (var cell in Cells)
-                cell.Animation = AnimationType.None;
-
-            // 4. Новые фигуры (которых не было на доске) появляются с FadeIn
-            foreach (var cell in newCells)
-                cell.Animation = AnimationType.FadeIn;
+        }
+        finally
+        {
+            _isResolving = false;
         }
     }
 }
