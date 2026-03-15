@@ -17,8 +17,8 @@ public sealed class GameViewModel : ObservableObject
     private readonly GameBoardAnimator _animator;
     private readonly int _shapeCount = Enum.GetValues<ShapeType>().Length;
     private static readonly Random _random = new();
-    private Cell? _firstSelectedCell = null;
-    private Cell? _lastMovedCell = null;
+    private Cell? _firstSelectedCell;
+    private Cell? _lastMovedCell;
 
     private bool _isResolving;
 
@@ -32,13 +32,24 @@ public sealed class GameViewModel : ObservableObject
         _timer.Tick += Timer_Tick;
 
         // Команда всегда доступна, но внутри обработчика мы игнорируем клики,
-        // пока идёт ResolveBoard (IsResolving = true).
+        // пока идёт ResolveBoard (_isResolving = true).
         ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
 
         Reset();
         ResolveBoard();
     }
 
+    private int TimeLeftSeconds
+    {
+        get => _timeLeftSeconds;
+        set
+        {
+            if (SetProperty(ref _timeLeftSeconds, value))
+                OnPropertyChanged(nameof(TimeText));
+        }
+    }
+
+    //TODO возможно нужно переделать в двухмерный массив
     public ObservableCollection<Cell> Cells { get; } = [];
 
     public RelayCommand<Cell> ToggleCellSelectionCommand { get; }
@@ -51,16 +62,13 @@ public sealed class GameViewModel : ObservableObject
 
     public string TimeText => $"{_timeLeftSeconds / 60:00}:{_timeLeftSeconds % 60:00}";
 
-    //TODO так ли сильно мне нужны эти функции
-    private void Start() => _timer.Start();
-
-    private void Stop() => _timer.Stop();
-
+    /// <summary>
+    /// Установка начальных значений переменных и инициализация игрового поля
+    /// </summary>
     private void Reset()
     {
         Score = 0;
-        _timeLeftSeconds = GameConstants.TIME_LIMIT_SECONDS;
-        OnPropertyChanged(nameof(TimeText));
+        TimeLeftSeconds = GameConstants.TIME_LIMIT_SECONDS;
         _firstSelectedCell = null;
         InitBoard();
     }
@@ -69,10 +77,10 @@ public sealed class GameViewModel : ObservableObject
     {
         if (Cells.Count <= 0)
         {
-        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-                Cells.Add(new Cell(r, c, GetRandomShape()));
-    }
+            for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+                for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+                    Cells.Add(new Cell(r, c, GetRandomShape()));
+        }
         else
         {
             foreach (var cell in Cells)
@@ -115,84 +123,77 @@ public sealed class GameViewModel : ObservableObject
         {
             case GameState.Menu:
             case GameState.GameOver:
-                Stop();
+                _timer.Stop();
                 break;
 
             case GameState.InGame:
                 Reset();
                 ResolveBoard();
-                Start();
+                _timer.Start();
                 break;
         }
     }
 
     private void Timer_Tick(object? sender, EventArgs e)
     {
-        if (--_timeLeftSeconds > 0)
-        {
-            OnPropertyChanged(nameof(TimeText));
-            return;
-        }
-
-        Stop();
-        _gameStateService.CurrentState = GameState.GameOver;
+        if (--TimeLeftSeconds <= 0)
+            _gameStateService.CurrentState = GameState.GameOver;
     }
 
     private void OnCellClicked(Cell? cell)
     {
-        if (_isResolving)
+        if (_isResolving || cell is null)
             return;
 
-        if (cell is null)
-            return;
-
+        // выбор первой ячейки
         if (_firstSelectedCell is null)
         {
-            ClearSelection();
             cell.IsSelected = true;
             _firstSelectedCell = cell;
             return;
         }
 
+        // если выбрал туже самую ячейку — отменяем
         if (ReferenceEquals(_firstSelectedCell, cell))
         {
-            ClearSelection();
+            cell.IsSelected = false;
             _firstSelectedCell = null;
             return;
         }
 
+        // если выбрал ячейку рядом — меняем местами
         if (AreNeighbour(_firstSelectedCell, cell))
         {
-            var first = _firstSelectedCell;
-            var second = cell;
+            TrySwap(_firstSelectedCell, cell);
 
-            (second.Shape, first.Shape) = (first.Shape, second.Shape);
-
-            var matches = FindMatches();
-            if (matches.Contains(first) || matches.Contains(second))
-            {
-                _lastMovedCell = second;
-                ResolveBoard();
-            }
-            else
-            {
-                // если ход не приводит к совпадению — откатываем
-                (second.Shape, first.Shape) = (first.Shape, second.Shape);
-            }
         }
 
-        ClearSelection();
+        _firstSelectedCell.IsSelected = false;
         _firstSelectedCell = null;
+        //_firstSelectedCell.IsSelected = false;
+        //_firstSelectedCell = cell;
+        //cell.IsSelected = true;
     }
 
-    private void ClearSelection()
+    private void TrySwap(Cell first, Cell second)
     {
-        foreach (var c in Cells)
-            c.IsSelected = false;
+        (first.Shape, second.Shape) = (second.Shape, first.Shape);
+
+        var matches = FindMatches();
+        if (matches.Contains(first) || matches.Contains(second))
+        {
+            _lastMovedCell = second;
+            ResolveBoard(matches);
+        }
+        else
+        {
+            // откат
+            (first.Shape, second.Shape) = (second.Shape, first.Shape);
+        }
     }
 
     /// <summary>
-    /// Проверяет что клетки соседи по вертикали или горизонтали
+    /// Проверяет что клетки находяться рядом по вертикали или горизонтали
     /// </summary>
     /// <param name="a"></param>
     /// <param name="b"></param>
@@ -209,94 +210,96 @@ public sealed class GameViewModel : ObservableObject
 
     private Cell GetCell(int row, int column) => Cells[GetIndex(row, column)];
 
-    private IEnumerable<IReadOnlyList<Cell>> EnumerateHorizontalRuns()
-    {
-        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-        {
-            int c = 0;
-            while (c < GameConstants.BOARD_COLUMNS)
-            {
-                var start = GetCell(r, c);
-                var shape = start.Shape;
-
-                if (shape == ShapeType.None)
-                {
-                    c++;
-                    continue;
-                }
-
-                int runStart = c;
-                int runLen = 1;
-                while (c + runLen < GameConstants.BOARD_COLUMNS && GetCell(r, c + runLen).Shape == shape)
-                    runLen++;
-
-                var runCells = new List<Cell>(runLen);
-                for (int k = 0; k < runLen; k++)
-                    runCells.Add(GetCell(r, runStart + k));
-
-                yield return runCells;
-
-                c = runStart + runLen;
-            }
-        }
-    }
-
-    private IEnumerable<IReadOnlyList<Cell>> EnumerateVerticalRuns()
-    {
-        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-        {
-            int r = 0;
-            while (r < GameConstants.BOARD_ROWS)
-            {
-                var start = GetCell(r, c);
-                var shape = start.Shape;
-
-                if (shape == ShapeType.None)
-                {
-                    r++;
-                    continue;
-                }
-
-                int runStart = r;
-                int runLen = 1;
-                while (r + runLen < GameConstants.BOARD_ROWS && GetCell(r + runLen, c).Shape == shape)
-                    runLen++;
-
-                var runCells = new List<Cell>(runLen);
-                for (int k = 0; k < runLen; k++)
-                    runCells.Add(GetCell(runStart + k, c));
-
-                yield return runCells;
-
-                r = runStart + runLen;
-            }
-        }
-    }
-
     private HashSet<Cell> FindMatches()
     {
         var result = new HashSet<Cell>();
 
-        foreach (var run in EnumerateHorizontalRuns())
+        void Process(IEnumerable<IReadOnlyList<Cell>> runs)
         {
-            if (run.Count < GameConstants.MIN_MATCH_LENGTH)
-                continue;
+            foreach (var run in runs)
+            {
+                if (run.Count < GameConstants.MIN_MATCH_LENGTH)
+                    continue;
 
-            foreach (var cell in run)
-                result.Add(cell);
+                foreach (var cell in run)
+                    result.Add(cell);
+            }
         }
 
-        foreach (var run in EnumerateVerticalRuns())
-        {
-            if (run.Count < GameConstants.MIN_MATCH_LENGTH)
-                continue;
-
-            foreach (var cell in run)
-                result.Add(cell);
-        }
+        Process(EnumerateHorizontalRuns());
+        Process(EnumerateVerticalRuns());
 
         return result;
     }
+
+
+    /// <summary>
+    /// Проверяет что одинаковые фигуры находяться рядом по горизонтали
+    /// </summary>
+    /// <returns>Возвращает последовательно список <see cref="Cell"/> по горизонтали</returns>
+    private IEnumerable<IReadOnlyList<Cell>> EnumerateHorizontalRuns()
+    {
+        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
+            foreach (var run in EnumerateRuns(r, 0, 0, 1))
+                yield return run;
+    }
+
+    /// <summary>
+    /// Проверяет что одинаковые фигуры находяться рядом по вертикали
+    /// </summary>
+    /// <returns>Возвращает последовательно список <see cref="Cell"/> по вертикали</returns>
+    private IEnumerable<IReadOnlyList<Cell>> EnumerateVerticalRuns()
+    {
+        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+            foreach (var run in EnumerateRuns(0, c, 1, 0))
+                yield return run;
+    }
+
+    private IEnumerable<IReadOnlyList<Cell>> EnumerateRuns(int startR, int startC, int stepR, int stepC)
+    {
+        int r = startR;
+        int c = startC;
+
+        while (r < GameConstants.BOARD_ROWS && c < GameConstants.BOARD_COLUMNS)
+        {
+            var start = GetCell(r, c);
+            var shape = start.Shape;
+
+            if (shape == ShapeType.None)
+            {
+                r += stepR;
+                c += stepC;
+                continue;
+            }
+
+            int len = 1;
+
+            while (true)
+            {
+                int nr = r + stepR * len;
+                int nc = c + stepC * len;
+
+                if (nr >= GameConstants.BOARD_ROWS || nc >= GameConstants.BOARD_COLUMNS)
+                    break;
+
+                if (GetCell(nr, nc).Shape != shape)
+                    break;
+
+                len++;
+            }
+
+            var run = new List<Cell>(len);
+
+            for (int i = 0; i < len; i++)
+                run.Add(GetCell(r + stepR * i, c + stepC * i));
+
+            yield return run;
+
+            r += stepR * len;
+            c += stepC * len;
+        }
+    }
+
 
     /// <summary>
     /// Активирует уже существующие Line‑бонусы (HLine / VLine), попавшие в матч:
@@ -368,6 +371,12 @@ public sealed class GameViewModel : ObservableObject
 
     private async void ResolveBoard()
     {
+        var matches = FindMatches();
+        ResolveBoard(matches);
+    }
+
+    private async void ResolveBoard(HashSet<Cell> matches)
+    {
         if (_isResolving)
             return;
 
@@ -375,21 +384,21 @@ public sealed class GameViewModel : ObservableObject
 
         try
         {
-            while (true)
-            {
-                var matches = FindMatches();
-                if (matches.Count == 0)
-                    break;
+            var currentMatches = matches;
 
-                var cellsToClear = PrepareCellsToClear(matches);
+            while (currentMatches.Count > 0)
+            {
+                var cellsToClear = PrepareCellsToClear(currentMatches);
 
                 await _animator.FadeOutAsync(cellsToClear);
 
                 ClearCells(cellsToClear);
 
-                Score += matches.Count * GameConstants.BASE_SCORE_PER_CELL;
+                Score += currentMatches.Count * GameConstants.BASE_SCORE_PER_CELL;
 
                 await ApplyGravity();
+
+                currentMatches = FindMatches();
             }
         }
         finally
