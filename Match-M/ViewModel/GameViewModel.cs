@@ -65,14 +65,19 @@ public sealed class GameViewModel : ObservableObject
         InitBoard();
     }
 
-    //TODO можно ли не пересоздавать элементы а менять их
     private void InitBoard()
     {
-        Cells.Clear();
-
+        if (Cells.Count <= 0)
+        {
         for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
             for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
                 Cells.Add(new Cell(r, c, GetRandomShape()));
+    }
+        else
+        {
+            foreach (var cell in Cells)
+                cell.Shape = GetRandomShape();
+        }
     }
 
     private ShapeType GetRandomShape() => (ShapeType)_random.Next(1, _shapeCount);
