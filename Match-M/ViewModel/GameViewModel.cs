@@ -83,7 +83,8 @@ public sealed class GameViewModel : ObservableObject
     private ShapeType GetRandomShape() => (ShapeType)_random.Next(1, _shapeCount);
 
     /// <summary>
-    /// Prints the board to debug output with each cell's shape as its numeric value (0=None, 1=Square, 2=Circle, 3=Triangle, 4=Diamond, 5=Star).
+    /// Prints the board to debug output: shape number (0–5) and Line bonuses (↔ HLine, ↨ VLine);
+    /// Bomb is shown as "B" only (no shape, no color).
     /// </summary>
     [Conditional("DEBUG")]
     private void PrintBoard()
@@ -93,8 +94,15 @@ public sealed class GameViewModel : ObservableObject
             var line = "";
             for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
             {
-                int shapeNumber = (int)GetCell(r, c).Shape;
-                line += shapeNumber + (c < GameConstants.BOARD_COLUMNS - 1 ? " " : "");
+                var cell = GetCell(r, c);
+                string cellStr = cell.Bonus switch
+                {
+                    BonusType.Bomb => "B",
+                    BonusType.HLine => (int)cell.Shape + "↔",
+                    BonusType.VLine => (int)cell.Shape + "↨",
+                    _ => ((int)cell.Shape).ToString()
+                };
+                line += cellStr + (c < GameConstants.BOARD_COLUMNS - 1 ? " " : "");
             }
             Debug.WriteLine(line);
         }
