@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Match_M.Animations;
-using Match_M.Behaviors;
 using Match_M.Model;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -15,6 +14,7 @@ public sealed class GameViewModel : ObservableObject
     private int _timeLeftSeconds;
     private readonly DispatcherTimer _timer;
     private readonly GameStateService _gameStateService;
+    private readonly GameBoardAnimator _animator;
     private readonly int _shapeCount = Enum.GetValues<ShapeType>().Length;
     private static readonly Random _random = new();
     private Cell? _firstSelectedCell = null;
@@ -22,14 +22,11 @@ public sealed class GameViewModel : ObservableObject
 
     private bool _isResolving;
 
-    private int _pendingAnimations;
-    private TaskCompletionSource _animationsCompletionSource = new();
-
     public GameViewModel(GameStateService gameStateService)
     {
         _gameStateService = gameStateService;
         _gameStateService.StateChanged += GameState_PropertyChanged;
-        AnimationBehavior.AnimationCompleted += AnimationBehavior_AnimationCompleted;
+        _animator = new GameBoardAnimator(Cells);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
@@ -40,34 +37,6 @@ public sealed class GameViewModel : ObservableObject
 
         Reset();
         ResolveBoard();
-    }
-
-    private async Task AnimationFadeOut(HashSet<Cell> cellsToAnimate)
-    {
-        if (cellsToAnimate.Count == 0)
-            return;
-
-        _pendingAnimations = cellsToAnimate.Count;
-        _animationsCompletionSource = new TaskCompletionSource();
-
-        foreach (var cell in cellsToAnimate)
-        {
-            cell.Animation = AnimationType.FadeOut;
-        }
-
-        // Дожидаемся завершения всех анимаций через событие из AnimationBehavior
-        await _animationsCompletionSource.Task;
-
-        //foreach (var cell in matches)
-        //{
-        //    cell.Animation = AnimationType.None;
-        //}
-    }
-
-    private void AnimationBehavior_AnimationCompleted(object? sender, EventArgs e)
-    {
-        if (--_pendingAnimations == 0)
-            _animationsCompletionSource.TrySetResult();
     }
 
     public ObservableCollection<Cell> Cells { get; } = [];
@@ -401,7 +370,7 @@ public sealed class GameViewModel : ObservableObject
 
                 var cellsToClear = PrepareCellsToClear(matches);
 
-                await AnimationFadeOut(cellsToClear);
+                await _animator.FadeOutAsync(cellsToClear);
 
                 ClearCells(cellsToClear);
 
@@ -445,11 +414,11 @@ public sealed class GameViewModel : ObservableObject
         var fallMoves = CollectFallMoves();
 
         if (fallMoves.Count > 0)
-            await AnimateFalls(fallMoves);
+            await _animator.AnimateFallsAsync(fallMoves);
 
         var newCells = MoveCellsDownAndSpawn();
 
-        ResetAnimations();
+        _animator.ResetAnimations();
 
         foreach (var cell in newCells)
             cell.Animation = AnimationType.FadeIn;
@@ -500,15 +469,6 @@ public sealed class GameViewModel : ObservableObject
         return newCells;
     }
 
-    private void ResetAnimations()
-    {
-        foreach (var cell in Cells)
-        {
-            cell.FallDistanceCells = 0;
-            cell.Animation = AnimationType.None;
-        }
-    }
-
     private List<(int fromRow, int toRow, int col)> CollectFallMoves()
     {
         var moves = new List<(int, int, int)>();
@@ -532,29 +492,5 @@ public sealed class GameViewModel : ObservableObject
         return moves;
     }
 
-    private async Task AnimateFalls(List<(int fromRow, int toRow, int col)> moves)
-    {
-        var wait = WaitAnimations(moves.Count);
-
-        foreach (var (fromRow, toRow, col) in moves)
-        {
-            var cell = GetCell(fromRow, col);
-            cell.FallDistanceCells = toRow - fromRow;
-            cell.Animation = AnimationType.MoveUpDown;
-        }
-
-        await wait;
-    }
-
-    private Task WaitAnimations(int count)
-    {
-        if (count == 0)
-            return Task.CompletedTask;
-
-        _pendingAnimations = count;
-        _animationsCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        return _animationsCompletionSource.Task;
-    }
 }
 
