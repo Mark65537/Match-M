@@ -20,6 +20,7 @@ public sealed class GameViewModel : ObservableObject
     private Cell? _firstSelectedCell;
     private Cell? _lastMovedCell;
 
+    private readonly bool _isBonusesActive = false;
     private bool _isResolving;
 
     public GameViewModel(GameStateService gameStateService)
@@ -307,6 +308,9 @@ public sealed class GameViewModel : ObservableObject
     /// </summary>
     private void ActivateLineBonuses(HashSet<Cell> matches, HashSet<Cell> cellsToClear)
     {
+        if (!_isBonusesActive)
+            return;
+
         foreach (var cell in matches)
         {
             switch (cell.Bonus)
@@ -331,7 +335,7 @@ public sealed class GameViewModel : ObservableObject
     /// </summary>
     private void CreateLineBonuses(HashSet<Cell> matches, HashSet<Cell> cellsToClear)
     {
-        if (_lastMovedCell is null)
+        if (!_isBonusesActive || _lastMovedCell is null)
             return;
 
         var last = _lastMovedCell;
@@ -369,7 +373,7 @@ public sealed class GameViewModel : ObservableObject
         }
     }
 
-    private async void ResolveBoard()
+    private void ResolveBoard()
     {
         var matches = FindMatches();
         ResolveBoard(matches);
