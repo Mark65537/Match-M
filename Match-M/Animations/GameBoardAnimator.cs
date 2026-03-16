@@ -45,14 +45,14 @@ public sealed class GameBoardAnimator
     /// <summary>
     /// Animates cells falling and completes when all fall animations are done.
     /// </summary>
-    public async Task AnimateFallsAsync(List<(int fromRow, int toRow, int col)> moves)
+    public async Task AnimateFallsAsync(List<FallMove> moves)
     {
         var wait = WaitAnimations(moves.Count);
 
-        foreach (var (fromRow, toRow, col) in moves)
+        foreach (var fallMove in moves)
         {
-            var cell = _cells[fromRow, col];
-            cell.FallDistanceCells = toRow - fromRow;
+            var cell = _cells[fallMove.FromRow, fallMove.Col];
+            cell.FallDistanceCells = fallMove.ToRow - fallMove.FromRow;
             cell.Animation = AnimationType.MoveUpDown;
         }
 

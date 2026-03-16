@@ -286,9 +286,9 @@ public sealed class GameViewModel : ObservableObject
             cell.Animation = AnimationType.FadeIn;
     }
 
-    private List<(int fromRow, int toRow, int col)> CollectFallMoves()
+    private List<FallMove> CollectFallMoves()
     {
-        var moves = new List<(int, int, int)>();
+        var moves = new List<FallMove>();
 
         for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
         {
@@ -300,7 +300,7 @@ public sealed class GameViewModel : ObservableObject
                     continue;
 
                 if (targetRow != r)
-                    moves.Add((r, targetRow, c));//если фигура не находится на правильной позиции, то нужно добавить её перемещение.
+                    moves.Add(new FallMove(r, targetRow, c));//если фигура не находится на правильной позиции, то нужно добавить её перемещение.
 
                 targetRow--;
             }
