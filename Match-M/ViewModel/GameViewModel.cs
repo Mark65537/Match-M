@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Match_M.Animations;
 using Match_M.Model;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows.Threading;
 
@@ -19,6 +18,7 @@ public sealed class GameViewModel : ObservableObject
     private static readonly Random _random = new();
     private Cell? _firstSelectedCell;
     private Cell? _lastMovedCell;
+    private readonly Cell[,] _cells = new Cell[GameConstants.BOARD_ROWS, GameConstants.BOARD_COLUMNS];
 
     private readonly bool _isBonusesActive = false;
     private bool _isResolving;
@@ -27,7 +27,7 @@ public sealed class GameViewModel : ObservableObject
     {
         _gameStateService = gameStateService;
         _gameStateService.StateChanged += GameState_PropertyChanged;
-        _animator = new GameBoardAnimator(Cells);
+        _animator = new GameBoardAnimator(_cells);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
@@ -50,8 +50,7 @@ public sealed class GameViewModel : ObservableObject
         }
     }
 
-    //TODO возможно нужно переделать в двухмерный массив
-    public ObservableCollection<Cell> Cells { get; } = [];
+    public IEnumerable<Cell> Cells => _cells.Cast<Cell>();
 
     public RelayCommand<Cell> ToggleCellSelectionCommand { get; }
 
@@ -76,16 +75,13 @@ public sealed class GameViewModel : ObservableObject
 
     private void InitBoard()
     {
-        if (Cells.Count <= 0)
+        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
         {
-            for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-                for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-                    Cells.Add(new Cell(r, c, GetRandomShape()));
-        }
-        else
-        {
-            foreach (var cell in Cells)
-                cell.Shape = GetRandomShape();
+            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+            {
+                var cell = new Cell(r, c, GetRandomShape());
+                _cells[r, c] = cell;
+            }
         }
     }
 
@@ -103,7 +99,7 @@ public sealed class GameViewModel : ObservableObject
             var line = "";
             for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
             {
-                var cell = GetCell(r, c);
+                var cell = _cells[r, c];
                 string cellStr = cell.Bonus switch
                 {
                     BonusType.Bomb => "B",
@@ -206,11 +202,6 @@ public sealed class GameViewModel : ObservableObject
         return (dr + dc) == 1;
     }
 
-    private static int GetIndex(int row, int column) =>
-        row * GameConstants.BOARD_COLUMNS + column;
-
-    private Cell GetCell(int row, int column) => Cells[GetIndex(row, column)];
-
     private HashSet<Cell> FindMatches()
     {
         var result = new HashSet<Cell>();
@@ -263,7 +254,7 @@ public sealed class GameViewModel : ObservableObject
 
         while (r < GameConstants.BOARD_ROWS && c < GameConstants.BOARD_COLUMNS)
         {
-            var start = GetCell(r, c);
+            var start = _cells[r, c];
             var shape = start.Shape;
 
             if (shape == ShapeType.None)
@@ -283,7 +274,7 @@ public sealed class GameViewModel : ObservableObject
                 if (nr >= GameConstants.BOARD_ROWS || nc >= GameConstants.BOARD_COLUMNS)
                     break;
 
-                if (GetCell(nr, nc).Shape != shape)
+                if (_cells[nr, nc].Shape != shape)
                     break;
 
                 len++;
@@ -292,7 +283,7 @@ public sealed class GameViewModel : ObservableObject
             var run = new List<Cell>(len);
 
             for (int i = 0; i < len; i++)
-                run.Add(GetCell(r + stepR * i, c + stepC * i));
+                run.Add(_cells[r + stepR * i, c + stepC * i]);
 
             yield return run;
 
@@ -317,12 +308,12 @@ public sealed class GameViewModel : ObservableObject
             {
                 case BonusType.HLine:
                     for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-                        cellsToClear.Add(GetCell(cell.Row, c));
+                        cellsToClear.Add(_cells[cell.Row, c]);
                     break;
 
                 case BonusType.VLine:
                     for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-                        cellsToClear.Add(GetCell(r, cell.Column));
+                        cellsToClear.Add(_cells[r, cell.Column]);
                     break;
             }
         }
@@ -461,14 +452,14 @@ public sealed class GameViewModel : ObservableObject
             // перенос существующих фигур вниз
             for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
             {
-                var fromCell = GetCell(r, c);
+                var fromCell = _cells[r, c];
 
                 if (fromCell.Shape == ShapeType.None)
                     continue;
 
                 if (writeRow != r)
                 {
-                    var toCell = GetCell(writeRow, c);
+                    var toCell = _cells[writeRow, c];
 
                     toCell.Shape = fromCell.Shape;
                     toCell.Bonus = fromCell.Bonus;
@@ -483,7 +474,7 @@ public sealed class GameViewModel : ObservableObject
             // создаём новые фигуры сверху
             for (int r = writeRow; r >= 0; r--)
             {
-                var cell = GetCell(r, c);
+                var cell = _cells[r, c];
 
                 cell.Shape = GetRandomShape();
                 cell.Bonus = BonusType.None;
@@ -505,7 +496,7 @@ public sealed class GameViewModel : ObservableObject
 
             for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
             {
-                if (GetCell(r, c).Shape == ShapeType.None)
+                if (_cells[r, c].Shape == ShapeType.None)
                     continue;
 
                 if (writeRow != r)
