@@ -36,7 +36,7 @@ public sealed class GameViewModel : ObservableObject
         // пока идёт ResolveBoard (_isResolving = true).
         ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
 
-        Reset();
+        ResetAndInit();
         ResolveBoard();
     }
 
@@ -65,14 +65,27 @@ public sealed class GameViewModel : ObservableObject
     /// <summary>
     /// Установка начальных значений переменных и инициализация игрового поля
     /// </summary>
+    private void ResetAndInit()
+    {
+        Reset();
+        InitBoard();
+    }
+
+    /// <summary>
+    /// Установка начальных значений переменных
+    /// </summary>
     private void Reset()
     {
         Score = 0;
         TimeLeftSeconds = GameConstants.TIME_LIMIT_SECONDS;
         _firstSelectedCell = null;
-        InitBoard();
+        _lastMovedCell = null;
+        _isResolving = false;
     }
 
+    /// <summary>
+    /// Инициализация игрового поля
+    /// </summary>
     private void InitBoard()
     {
         for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
@@ -124,7 +137,7 @@ public sealed class GameViewModel : ObservableObject
                 break;
 
             case GameState.InGame:
-                Reset();
+                ResetAndInit();
                 ResolveBoard();
                 _timer.Start();
                 break;
