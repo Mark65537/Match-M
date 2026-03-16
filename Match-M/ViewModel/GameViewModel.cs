@@ -11,23 +11,34 @@ public sealed class GameViewModel : ObservableObject
 {
     private int _score;
     private int _timeLeftSeconds;
+
+    private bool _isResolving;
+
+    private readonly int _shapeCount = Enum.GetValues<ShapeType>().Length;
+    private readonly Random _random = new();
+    private readonly bool _isBonusesActive = false;
+
     private readonly DispatcherTimer _timer;
     private readonly GameStateService _gameStateService;
     private readonly GameBoardAnimator _animator;
-    private readonly int _shapeCount = Enum.GetValues<ShapeType>().Length;
-    private static readonly Random _random = new();
+    private readonly MatchFinderService _matchFinder;
+    private readonly BoardDebugService? _boardDebugService;
+    private readonly BonusService? _bonusService;
+
     private Cell? _firstSelectedCell;
     private Cell? _lastMovedCell;
     private readonly Cell[,] _cells = new Cell[GameConstants.BOARD_ROWS, GameConstants.BOARD_COLUMNS];
-
-    private readonly bool _isBonusesActive = false;
-    private bool _isResolving;
 
     public GameViewModel(GameStateService gameStateService)
     {
         _gameStateService = gameStateService;
         _gameStateService.StateChanged += GameState_PropertyChanged;
         _animator = new GameBoardAnimator(_cells);
+        _matchFinder = new MatchFinderService(_cells);
+        if (_isBonusesActive)
+        {
+            _bonusService = new BonusService(_cells);
+        }
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
@@ -36,7 +47,15 @@ public sealed class GameViewModel : ObservableObject
         // пока идёт ResolveBoard (_isResolving = true).
         ToggleCellSelectionCommand = new RelayCommand<Cell>(OnCellClicked);
 
+#if DEBUG
+        Reset();
+        _boardDebugService = new(_cells);
+        //_boardDebugService.SetBoardWithoutMatches();
+        InitBoard();
+#else
         ResetAndInit();
+#endif
+
         ResolveBoard();
     }
 
@@ -100,33 +119,6 @@ public sealed class GameViewModel : ObservableObject
 
     private ShapeType GetRandomShape() => (ShapeType)_random.Next(1, _shapeCount);
 
-    /// <summary>
-    /// Prints the board to debug output: shape number (0–5) and Line bonuses (↔ HLine, ↨ VLine);
-    /// Bomb is shown as "B" only (no shape, no color).
-    /// </summary>
-    [Conditional("DEBUG")]
-    private void PrintBoard()
-    {
-        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-        {
-            var line = "";
-            for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-            {
-                var cell = _cells[r, c];
-                string cellStr = cell.Bonus switch
-                {
-                    BonusType.Bomb => "B",
-                    BonusType.HLine => (int)cell.Shape + "↔",
-                    BonusType.VLine => (int)cell.Shape + "↨",
-                    _ => ((int)cell.Shape).ToString()
-                };
-                line += cellStr + (c < GameConstants.BOARD_COLUMNS - 1 ? " " : "");
-            }
-            Debug.WriteLine(line);
-        }
-        Debug.WriteLine("");
-    }
-
     private void GameState_PropertyChanged()
     {
         switch (_gameStateService.CurrentState)
@@ -189,7 +181,7 @@ public sealed class GameViewModel : ObservableObject
     {
         (first.Shape, second.Shape) = (second.Shape, first.Shape);
 
-        var matches = FindMatches();
+        var matches = _matchFinder.FindMatches();
         if (matches.Contains(first) || matches.Contains(second))
         {
             _lastMovedCell = second;
@@ -215,171 +207,9 @@ public sealed class GameViewModel : ObservableObject
         return (dr + dc) == 1;
     }
 
-    private HashSet<Cell> FindMatches()
-    {
-        var result = new HashSet<Cell>();
-
-        void Process(IEnumerable<IReadOnlyList<Cell>> runs)
-        {
-            foreach (var run in runs)
-            {
-                if (run.Count < GameConstants.MIN_MATCH_LENGTH)
-                    continue;
-
-                foreach (var cell in run)
-                    result.Add(cell);
-            }
-        }
-
-        Process(EnumerateHorizontalRuns());
-        Process(EnumerateVerticalRuns());
-
-        return result;
-    }
-
-
-    /// <summary>
-    /// Проверяет что одинаковые фигуры находяться рядом по горизонтали
-    /// </summary>
-    /// <returns>Возвращает последовательно список <see cref="Cell"/> по горизонтали</returns>
-    private IEnumerable<IReadOnlyList<Cell>> EnumerateHorizontalRuns()
-    {
-        for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-            foreach (var run in EnumerateRuns(r, 0, 0, 1))
-                yield return run;
-    }
-
-    /// <summary>
-    /// Проверяет что одинаковые фигуры находяться рядом по вертикали
-    /// </summary>
-    /// <returns>Возвращает последовательно список <see cref="Cell"/> по вертикали</returns>
-    private IEnumerable<IReadOnlyList<Cell>> EnumerateVerticalRuns()
-    {
-        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-            foreach (var run in EnumerateRuns(0, c, 1, 0))
-                yield return run;
-    }
-
-    private IEnumerable<IReadOnlyList<Cell>> EnumerateRuns(int startR, int startC, int stepR, int stepC)
-    {
-        int r = startR;
-        int c = startC;
-
-        while (r < GameConstants.BOARD_ROWS && c < GameConstants.BOARD_COLUMNS)
-        {
-            var start = _cells[r, c];
-            var shape = start.Shape;
-
-            if (shape == ShapeType.None)
-            {
-                r += stepR;
-                c += stepC;
-                continue;
-            }
-
-            int len = 1;
-
-            while (true)
-            {
-                int nr = r + stepR * len;
-                int nc = c + stepC * len;
-
-                if (nr >= GameConstants.BOARD_ROWS || nc >= GameConstants.BOARD_COLUMNS)
-                    break;
-
-                if (_cells[nr, nc].Shape != shape)
-                    break;
-
-                len++;
-            }
-
-            var run = new List<Cell>(len);
-
-            for (int i = 0; i < len; i++)
-                run.Add(_cells[r + stepR * i, c + stepC * i]);
-
-            yield return run;
-
-            r += stepR * len;
-            c += stepC * len;
-        }
-    }
-
-
-    /// <summary>
-    /// Активирует уже существующие Line‑бонусы (HLine / VLine), попавшие в матч:
-    /// добавляет к очистке всю строку или столбец, включая саму ячейку‑бонус.
-    /// </summary>
-    private void ActivateLineBonuses(HashSet<Cell> matches, HashSet<Cell> cellsToClear)
-    {
-        if (!_isBonusesActive)
-            return;
-
-        foreach (var cell in matches)
-        {
-            switch (cell.Bonus)
-            {
-                case BonusType.HLine:
-                    for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-                        cellsToClear.Add(_cells[cell.Row, c]);
-                    break;
-
-                case BonusType.VLine:
-                    for (int r = 0; r < GameConstants.BOARD_ROWS; r++)
-                        cellsToClear.Add(_cells[r, cell.Column]);
-                    break;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Ищет комбинации ровно из четырёх одинаковых фигур, которые включают
-    /// последний сдвинутый элемент, и превращает этот элемент в бонус Line
-    /// Сам бонус из очистки исключается (остается на поле).
-    /// </summary>
-    private void CreateLineBonuses(HashSet<Cell> matches, HashSet<Cell> cellsToClear)
-    {
-        if (!_isBonusesActive || _lastMovedCell is null)
-            return;
-
-        var last = _lastMovedCell;
-
-        // По горизонтали
-        foreach (var run in EnumerateHorizontalRuns())
-        {
-            if (run.Count != 4)
-                continue;
-
-            if (run.Contains(last) && matches.IsSupersetOf(run))
-            {
-                // Бонус создаётся в ячейке, которую двигали последней
-                last.Bonus = BonusType.HLine;
-
-                // Не удаляем бонус с поля
-                cellsToClear.Remove(last);
-                return;
-            }
-        }
-
-        // По вертикали
-        foreach (var run in EnumerateVerticalRuns())
-        {
-            if (run.Count != 4)
-                continue;
-
-            if (run.Contains(last) && matches.IsSupersetOf(run))
-            {
-                last.Bonus = BonusType.VLine;
-
-                cellsToClear.Remove(last);
-                return;
-            }
-        }
-    }
-
     private void ResolveBoard()
     {
-        var matches = FindMatches();
+        var matches = _matchFinder.FindMatches();
         ResolveBoard(matches);
     }
 
@@ -392,21 +222,24 @@ public sealed class GameViewModel : ObservableObject
 
         try
         {
-            var currentMatches = matches;
+            var cellsToClear = matches;
 
-            while (currentMatches.Count > 0)
+            while (cellsToClear.Count > 0)
             {
-                var cellsToClear = PrepareCellsToClear(currentMatches);
+                //var cellsToClear = PrepareCellsToClear(currentMatches);
 
+                // анимация исчезновения ячейек
                 await _animator.FadeOutAsync(cellsToClear);
 
+                // Удаляем фигуры с ячеек
                 ClearCells(cellsToClear);
 
-                Score += currentMatches.Count * GameConstants.BASE_SCORE_PER_CELL;
+                // Прибавляем очки
+                AddScore(cellsToClear);
 
                 await ApplyGravity();
 
-                currentMatches = FindMatches();
+                cellsToClear = _matchFinder.FindMatches();
             }
         }
         finally
@@ -415,21 +248,10 @@ public sealed class GameViewModel : ObservableObject
         }
     }
 
-    private HashSet<Cell> PrepareCellsToClear(HashSet<Cell> matches)
-    {
-        var cellsToClear = new HashSet<Cell>(matches);
-
-        ActivateLineBonuses(matches, cellsToClear);
-
-        if (_lastMovedCell is not null)
-        {
-            CreateLineBonuses(matches, cellsToClear);
-            _lastMovedCell = null;
-        }
-
-        return cellsToClear;
-    }
-
+    /// <summary>
+    /// Убирает с ячейки фигуры и бонусы
+    /// </summary>
+    /// <param name="cells"></param>
     private static void ClearCells(IEnumerable<Cell> cells)
     {
         foreach (var cell in cells)
@@ -437,6 +259,16 @@ public sealed class GameViewModel : ObservableObject
             cell.Shape = ShapeType.None;
             cell.Bonus = BonusType.None;
         }
+    }
+
+    // IMPORTANT функция сделана на тот случай если будет сложный алгоритм подсчета очков
+    /// <summary>
+    /// Функция которая прибавляет очки
+    /// </summary>
+    /// <param name="cellsToClearCount"> Количество уничтоженных ячейек</param>
+    private void AddScore(HashSet<Cell> cellsToClear)
+    {
+        Score += cellsToClear.Count * GameConstants.BASE_SCORE_PER_CELL;
     }
 
     private async Task ApplyGravity()
@@ -452,6 +284,29 @@ public sealed class GameViewModel : ObservableObject
 
         foreach (var cell in newCells)
             cell.Animation = AnimationType.FadeIn;
+    }
+
+    private List<(int fromRow, int toRow, int col)> CollectFallMoves()
+    {
+        var moves = new List<(int, int, int)>();
+
+        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
+        {
+            int targetRow = GameConstants.BOARD_ROWS - 1;// переменная запоминает в какой строке последний раз была запись
+
+            for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
+            {
+                if (_cells[r, c].Shape == ShapeType.None)
+                    continue;
+
+                if (targetRow != r)
+                    moves.Add((r, targetRow, c));//если фигура не находится на правильной позиции, то нужно добавить её перемещение.
+
+                targetRow--;
+            }
+        }
+
+        return moves;
     }
 
     private List<Cell> MoveCellsDownAndSpawn()
@@ -499,28 +354,6 @@ public sealed class GameViewModel : ObservableObject
         return newCells;
     }
 
-    private List<(int fromRow, int toRow, int col)> CollectFallMoves()
-    {
-        var moves = new List<(int, int, int)>();
-
-        for (int c = 0; c < GameConstants.BOARD_COLUMNS; c++)
-        {
-            int writeRow = GameConstants.BOARD_ROWS - 1;
-
-            for (int r = GameConstants.BOARD_ROWS - 1; r >= 0; r--)
-            {
-                if (_cells[r, c].Shape == ShapeType.None)
-                    continue;
-
-                if (writeRow != r)
-                    moves.Add((r, writeRow, c));
-
-                writeRow--;
-            }
-        }
-
-        return moves;
-    }
 
 }
 
