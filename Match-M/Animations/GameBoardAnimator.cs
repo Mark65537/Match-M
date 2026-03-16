@@ -1,6 +1,5 @@
 using Match_M.Behaviors;
 using Match_M.Model;
-using System.Collections.ObjectModel;
 
 namespace Match_M.Animations;
 
@@ -9,12 +8,12 @@ namespace Match_M.Animations;
 /// </summary>
 public sealed class GameBoardAnimator
 {
-    private int _pendingAnimations;
+    private int _cellsToAnimateCount;
     private TaskCompletionSource _animationsCompletionSource = new();
 
-    private readonly ObservableCollection<Cell> _cells;
+    private readonly Cell[,] _cells;
 
-    public GameBoardAnimator(ObservableCollection<Cell> cells)
+    public GameBoardAnimator(Cell[,] cells)
     {
         _cells = cells;
         AnimationBehavior.AnimationCompleted += OnAnimationCompleted;
@@ -22,7 +21,7 @@ public sealed class GameBoardAnimator
 
     private void OnAnimationCompleted(object? sender, EventArgs e)
     {
-        if (--_pendingAnimations == 0)
+        if (--_cellsToAnimateCount <= 0)
             _animationsCompletionSource.TrySetResult();
     }
 
@@ -31,16 +30,16 @@ public sealed class GameBoardAnimator
     /// </summary>
     public async Task FadeOutAsync(HashSet<Cell> cellsToAnimate)
     {
-        if (cellsToAnimate.Count == 0)
+        if (cellsToAnimate.Count <= 0)
             return;
 
-        _pendingAnimations = cellsToAnimate.Count;
+        _cellsToAnimateCount = cellsToAnimate.Count;
         _animationsCompletionSource = new TaskCompletionSource();
 
         foreach (var cell in cellsToAnimate)
             cell.Animation = AnimationType.FadeOut;
 
-        await _animationsCompletionSource.Task;
+        await _animationsCompletionSource.Task;// ∆дем пока все анимации завершатьс€
     }
 
     /// <summary>
@@ -52,7 +51,7 @@ public sealed class GameBoardAnimator
 
         foreach (var (fromRow, toRow, col) in moves)
         {
-            var cell = _cells[fromRow * GameConstants.BOARD_COLUMNS + col];
+            var cell = _cells[fromRow, col];
             cell.FallDistanceCells = toRow - fromRow;
             cell.Animation = AnimationType.MoveUpDown;
         }
@@ -77,7 +76,7 @@ public sealed class GameBoardAnimator
         if (count == 0)
             return Task.CompletedTask;
 
-        _pendingAnimations = count;
+        _cellsToAnimateCount = count;
         _animationsCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         return _animationsCompletionSource.Task;
