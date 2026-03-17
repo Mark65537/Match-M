@@ -8,7 +8,7 @@ public class Cell : ObservableObject
 {
     private ShapeType _shape;
     private bool _isSelected;
-    private AnimationType _animation;
+    private ICellAnimation? _animation;
     private BonusType _bonus;
 
     public int Row { get; }
@@ -20,7 +20,7 @@ public class Cell : ObservableObject
         set => SetProperty(ref _shape, value);
     }
 
-    public AnimationType Animation
+    public ICellAnimation? Animation
     {
         get => _animation;
         set => SetProperty(ref _animation, value);
@@ -40,11 +40,6 @@ public class Cell : ObservableObject
         get => _bonus;
         set => SetProperty(ref _bonus, value);
     }
-
-    /// <summary>
-    /// Расстояние падения в пикселях для анимации (используется поведением при Animation = MoveUpDown).
-    /// </summary>
-    public int FallDistanceCells { get; set; }
 
     public Cell(int row, int column, ShapeType shape)
     {

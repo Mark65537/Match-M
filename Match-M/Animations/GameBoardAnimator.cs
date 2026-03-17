@@ -37,7 +37,7 @@ public sealed class GameBoardAnimator
         _animationsCompletionSource = new TaskCompletionSource();
 
         foreach (var cell in cellsToAnimate)
-            cell.Animation = AnimationType.FadeOut;
+            cell.Animation = new FadeOutAnimation();
 
         await _animationsCompletionSource.Task;// ∆дем пока все анимации завершатьс€
     }
@@ -52,8 +52,13 @@ public sealed class GameBoardAnimator
         foreach (var fallMove in moves)
         {
             var cell = _cells[fallMove.FromRow, fallMove.Col];
-            cell.FallDistanceCells = fallMove.ToRow - fallMove.FromRow;
-            cell.Animation = AnimationType.MoveUpDown;
+            var deltaRows = fallMove.ToRow - fallMove.FromRow;
+
+            // ToY will be derived in behavior from DeltaRows (using actual UI cell size).
+            cell.Animation = new MoveAnimation(
+                deltaRows,
+                TimeSpan.FromMilliseconds(120 + (Math.Abs(deltaRows) * 70))
+                );
         }
 
         await wait;
@@ -66,8 +71,7 @@ public sealed class GameBoardAnimator
     {
         foreach (var cell in _cells)
         {
-            cell.FallDistanceCells = 0;
-            cell.Animation = AnimationType.None;
+            cell.Animation = null;
         }
     }
 

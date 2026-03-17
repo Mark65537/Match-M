@@ -283,7 +283,7 @@ public sealed class GameViewModel : ObservableObject
         _animator.ResetAnimations();
 
         foreach (var cell in newCells)
-            cell.Animation = AnimationType.FadeIn;
+            cell.Animation = new FadeInAnimation();
     }
 
     private List<FallMove> CollectFallMoves()
