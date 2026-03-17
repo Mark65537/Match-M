@@ -19,7 +19,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid Background="#111">
+    <Grid x:Name="MainGrid" Background="#111">
         <Grid.RowDefinitions>
             <!--  Верхняя панель: очки + таймер  -->
             <RowDefinition Height="Auto" />
@@ -29,26 +29,31 @@
 
         <!--  Верхняя панель  -->
         <StackPanel
+            x:Name="TopPanel"
             Grid.Row="0"
             Margin="10"
             HorizontalAlignment="Center"
             Orientation="Horizontal">
             <TextBlock
+                x:Name="ScoreLabel"
                 Margin="0,0,5,0"
                 FontSize="24"
                 Foreground="White"
                 Text="Очки:" />
             <TextBlock
+                x:Name="ScoreValue"
                 FontSize="24"
                 Foreground="Gold"
                 Text="{Binding Score}" />
 
             <TextBlock
+                x:Name="TimeLabel"
                 Margin="40,0,5,0"
                 FontSize="24"
                 Foreground="White"
                 Text="Время:" />
             <TextBlock
+                x:Name="TimeValue"
                 FontSize="24"
                 Foreground="LightGreen"
                 Text="{Binding TimeText}" />
@@ -57,12 +62,13 @@
         <!--  Игровое поле  -->
 
         <Viewbox
+            x:Name="BoardViewbox"
             Grid.Row="1"
             Margin="20"
             VerticalAlignment="Bottom"
             Stretch="Uniform"
             StretchDirection="Both">
-            <ItemsControl ItemsSource="{Binding Cells}">
+            <ItemsControl x:Name="BoardItems" ItemsSource="{Binding Cells}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="{x:Static model:GameConstants.BOARD_COLUMNS}" Rows="{x:Static model:GameConstants.BOARD_ROWS}" />
