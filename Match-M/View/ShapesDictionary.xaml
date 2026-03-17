@@ -169,6 +169,48 @@
                                         <Setter Property="Data" Value="M50,15 L55,25 L53,25 L53,75 L57,75 L50,85 L43,75 L47,75 L47,25 L45,25 Z" />
                                         <Setter Property="Fill" Value="#F1C40F" />
                                     </MultiDataTrigger>
+
+                                    <!-- Bomb: круглая бомба с фитилём, цвет берём из Shape -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.Bomb}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Square}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,22 A28,28 0 1 1 49.9,22 Z M66,24 C74,18 78,14 84,12 L80,22 C76,20 72,22 68,28 Z" />
+                                        <Setter Property="Fill" Value="#3FA9F5" />
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.Bomb}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Circle}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,22 A28,28 0 1 1 49.9,22 Z M66,24 C74,18 78,14 84,12 L80,22 C76,20 72,22 68,28 Z" />
+                                        <Setter Property="Fill" Value="#FF9F1C" />
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.Bomb}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Triangle}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,22 A28,28 0 1 1 49.9,22 Z M66,24 C74,18 78,14 84,12 L80,22 C76,20 72,22 68,28 Z" />
+                                        <Setter Property="Fill" Value="#2ECC71" />
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.Bomb}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Diamond}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,22 A28,28 0 1 1 49.9,22 Z M66,24 C74,18 78,14 84,12 L80,22 C76,20 72,22 68,28 Z" />
+                                        <Setter Property="Fill" Value="#9B59B6" />
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Bonus}" Value="{x:Static model:BonusType.Bomb}" />
+                                            <Condition Binding="{Binding Shape}" Value="{x:Static model:ShapeType.Star}" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Data" Value="M50,22 A28,28 0 1 1 49.9,22 Z M66,24 C74,18 78,14 84,12 L80,22 C76,20 72,22 68,28 Z" />
+                                        <Setter Property="Fill" Value="#F1C40F" />
+                                    </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Path.Style>
